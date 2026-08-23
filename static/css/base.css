@@ -1,0 +1,56 @@
+/* ===========================================================================
+   基础层 — @font-face / :root 变量 / reset
+   =========================================================================== */
+ 
+@font-face {
+  font-family: "ZhengQingSongTi";
+  src: url("/static/fonts/ZhengQingKeNanBeiCiGongPuSongTi-2.otf") format("truetype");
+  font-display: swap;
+  font-weight: normal;
+  font-style: normal;
+}
+ 
+@font-face {
+  font-family: "CustomSongTi";
+  src: url("/static/fonts/1.ttf") format("truetype");
+  font-display: swap;
+  font-weight: normal;
+  font-style: normal;
+}
+ 
+:root {
+  /* 墨绿（标题，提亮去深） */
+  --ink-green: #5aa48b;
+  /* 湖蓝（粒子 / 进度，半透明） */
+  --lake-blue: 91, 182, 212;
+  /* 磨砂玻璃 */
+  --glass-bg: rgba(255, 255, 255, 0.62);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-shadow: 0 8px 28px rgba(60, 110, 90, 0.12);
+  /* 按钮纯白磨砂 */
+  --btn-bg: rgba(255, 255, 255, 0.72);
+  --btn-border: rgba(255, 255, 255, 0.7);
+ 
+  /* 国风青绿 */
+  --chinese-green: #4A8575;
+  --chinese-green-hover: #3d7566;
+  --chinese-qing: #3D6390;
+  --chinese-orange: #D4946A;
+  --danger: #D94A4A;
+  --text-primary: var(--chinese-qing);
+  --text-secondary: #999;
+  --divider: rgba(0, 0, 0, 0.06);
+  --glass-bg-2: rgba(255, 255, 255, 0.78);
+  --glass-border-2: rgba(255, 255, 255, 0.55);
+  --glass-shadow-2: 0 16px 48px rgba(60, 110, 90, 0.10);
+}
+ 
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+ 
+html, body {
+  height: 100%;
+}

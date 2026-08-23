@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ project_name }} — 智能素材分类系统</title>
+  <link rel="stylesheet" href="/static/css/style.css?v={{ start_ts }}" />
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+</head>
+<body class="project-body">
+
+  <div class="orange-mist"></div>
+
+  <!-- 全宽头部，贴左上角 -->
+  <div class="project-top">
+    <div class="project-header">
+      <button class="project-menu-btn" id="projectMenuBtn" title="菜单">
+        <svg viewBox="0 0 16 16" width="23" height="23" fill="currentColor">
+          <circle cx="8" cy="3" r="1.8"/>
+          <circle cx="8" cy="8" r="1.8"/>
+          <circle cx="8" cy="13" r="1.8"/>
+        </svg>
+      </button>
+      <h1 class="project-title">{{ project_name }}</h1>
+    </div>
+    <div class="project-dropdown" id="projectDropdown">
+      <button class="project-dropdown-item" data-action="back">← 返回素材库</button>
+    </div>
+  </div>
+
+  <div class="project-stage">
+
+    <!-- ============ 步骤进度条 ============ -->
+    <div class="step-bar" id="stepBar">
+      {% for step in steps_order %}
+      {% set label = steps_label[step] %}
+      {% set icon = steps_icon[step] %}
+      {% set step_num = loop.index0 + 1 %}
+      {% if step_num < current_step %}
+        {% set st = "done" %}
+      {% elif step_num == current_step %}
+        {% set st = "current" %}
+      {% else %}
+        {% set st = "pending" %}
+      {% endif %}
+      <div class="step-item{% if st == 'done' %} step-done{% endif %}{% if st == 'current' %} step-current{% endif %}"
+        data-step="{{ step }}" data-step-num="{{ step_num }}" data-status="{{ st }}">
+        <div class="step-icon-wrap">
+          <img src="/static/icons/{{ icon }}.svg" alt="{{ label }}" class="step-icon" width="32" height="32" />
+        </div>
+
+        <span class="step-label">{{ label }}</span>
+      </div>
+
+      {% if not loop.last %}
+      <div class="step-connector{% if step_num < current_step %} conn-done{% endif %}">
+        <div class="conn-line"></div>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- ============ 主内容区 ============ -->
+    <div class="project-content" id="panelBody"></div>
+
+    <!-- ============ 全局底部栏 ============ -->
+    <div class="stage-footer" id="panelFooter">
+      <div class="sf-divider"></div>
+      <div class="sf-bar">
+        <div class="indicator-group" id="indicatorGroup">
+          <div class="indicator" id="indCopy"><span class="indicator-dot"></span>照片处理</div>
+          <div class="indicator" id="indZip"><span class="indicator-dot"></span>视频压缩</div>
+          <div class="indicator" id="indWater"><span class="indicator-dot"></span>水印添加</div>
+        </div>
+        <button class="btn-next" id="btnNext">下一步</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    window.__PROJECT__ = {
+      name: {{ project_name | tojson }},
+      nameEncoded: {{ project_name_encoded | tojson }},
+      currentStep: {{ current_step }}
+    };
+  </script>
+  <script src="/static/js/app-events.js?v={{ start_ts }}"></script>
+  <script src="/static/js/project-common.js?v={{ start_ts }}"></script>
+  <script src="/static/js/panel-collect.js?v={{ start_ts }}"></script>
+  <script src="/static/js/panel-filter.js?v={{ start_ts }}"></script>
+  <script src="/static/js/panel-ai-classify.js?v={{ start_ts }}"></script>
+  <script src="/static/js/panel-deliver.js?v={{ start_ts }}"></script>
+  <script src="/static/js/project.js?v={{ start_ts }}"></script>
+</body>
+</html>

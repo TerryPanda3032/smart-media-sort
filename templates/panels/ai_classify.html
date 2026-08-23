@@ -1,0 +1,154 @@
+<div class="panel-aiclassify">
+  <div class="ac-main">
+    <div class="ac-left">
+      <!-- 视频模式：缠枝环纹样 + 进度数字 -->
+      <div class="ac-astrolabe" id="acAstrolabe">
+        <img src="/static/images/ac-pattern.svg" class="ac-pattern" alt="" />
+
+        <img src="/static/images/ac-ornament.svg" class="ac-ornament" alt="" />
+
+        <!-- 4 块玻璃小方块 -->
+        <div class="ac-squares">
+          <div class="ac-square ac-sq-1"></div>
+          <div class="ac-square ac-sq-2"></div>
+          <div class="ac-square ac-sq-3"></div>
+          <div class="ac-square ac-sq-4"></div>
+        </div>
+
+        <!-- 进度数字 -->
+        <div class="ac-progress">
+          <span class="ac-progress-num" id="acProgressNum">0</span><span class="ac-progress-pct">%</span>
+        </div>
+      </div>
+
+      <!-- 照片模式：文件夹结构树（取自 abc 左栏，原样） -->
+      <aside class="tree-panel" id="acTreePanel" style="display:none">
+        <div class="panel-bg"></div>
+        <div class="panel-blur"></div>
+        <div class="panel-content">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              <span>文件结构</span>
+            </div>
+            <div class="search-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" placeholder="搜索文件..." id="search-input">
+            </div>
+          </div>
+          <div class="tree-container" id="tree-container"></div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="ac-divider"></div>
+    <div class="ac-aside">
+      <!-- 分类模式切换：药丸滑块（视频 / 照片） -->
+      <div class="ac-mode-switch" id="acModeSwitch">
+        <div class="ac-mode-thumb" id="acModeThumb"></div>
+        <button type="button" class="ac-mode-item is-active" data-mode="video">视频分类</button>
+        <button type="button" class="ac-mode-item" data-mode="photo">照片分类</button>
+      </div>
+
+      <!-- 视频分类面板 -->
+      <div class="ac-video-panel" id="acVideoPanel">
+        <div class="ac-video-head">
+          <span class="ac-video-title">视频分类</span>
+          <button type="button" class="ac-video-start" id="acVideoStart">开始分析</button>
+        </div>
+        <div class="ac-video-list" id="acVideoList"></div>
+        <div class="ac-video-empty" id="acVideoEmpty" style="display:none">项目中暂无视频</div>
+      </div>
+
+      <!-- 照片分类面板（计划对话：输入 + 发送 + 回复） -->
+      <div class="ac-photo-panel" id="acPhotoPanel" style="display:none">
+        <div class="ac-plan" id="acPlan">
+          <!-- 输入条（跑马灯边框作用目标） -->
+          <div class="ac-plan-inputbar" id="acPlanInputBar">
+            <textarea id="acPlanInput" class="ac-plan-input" rows="1"
+                      placeholder="请输入照片整理要求，例如：先把照片分成 A 类和 B 类，再按需继续细分。"></textarea>
+            <button type="button" class="ac-plan-send" id="acPlanSend" title="发送" disabled>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+          </div>
+
+          <!-- 开始执行按钮（计划完成后替代输入条；当前仅占位，不绑定功能） -->
+          <button type="button" class="ac-plan-execute" id="acPlanExecute" style="display:none">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <span>开始执行</span>
+          </button>
+
+          <!-- 回复小面板（出现在输入区下方） -->
+          <div class="ac-plan-reply" id="acPlanReply" style="display:none"></div>
+
+          <!-- 错误提示 -->
+          <div class="ac-plan-error" id="acPlanError" style="display:none">
+            <span class="ac-plan-error-msg" id="acPlanErrorMsg"></span>
+            <button type="button" class="ac-plan-retry" id="acPlanRetry">重试</button>
+          </div>
+
+          <!-- 执行态UI（开始执行后显示） -->
+          <div class="ac-exec-area" id="acExecArea" style="display:none">
+            <!-- 顶部红色状态灯 + 滚动文字 -->
+            <div class="ac-exec-bar" id="acExecBar" title="单击查看完整控制台">
+              <div class="ac-exec-bar-dot"></div>
+              <div class="ac-exec-bar-text" id="acExecBarText">AI 正在分析...</div>
+            </div>
+
+            <!-- 下部分两栏 -->
+            <div class="ac-exec-bottom">
+              <!-- 左栏 -->
+              <div class="ac-exec-left-col">
+                <!-- Token 用量面板 -->
+                <div class="ac-exec-token-panel">
+                  <div class="ac-exec-panel-label">Token 用量</div>
+                  <div class="ac-exec-token-rows" id="acExecTokenContent">
+                    <div class="ac-exec-token-row"><span>输入</span><span class="ac-token-val" id="acTokenInput">0</span></div>
+                    <div class="ac-exec-token-row"><span>输出</span><span class="ac-token-val" id="acTokenOutput">0</span></div>
+                    <div class="ac-exec-token-row"><span>总计</span><span class="ac-token-val" id="acTokenTotal">0</span></div>
+                  </div>
+                </div>
+                <!-- 圆环进度条 -->
+                <div class="ac-exec-donut-panel">
+                  <canvas id="acDonutChart" width="140" height="140"></canvas>
+                  <div class="ac-donut-center" id="acDonutCenter">0%</div>
+                </div>
+              </div>
+              <!-- 右栏：图片预览器 -->
+              <div class="ac-exec-right-col">
+                <div class="ac-exec-image-panel">
+                  <div class="ac-exec-panel-label">图片预览</div>
+                  <div class="ac-exec-image-container" id="acImageContainer">
+                    <img id="acImageView" src="" alt="预览" style="display:none" />
+                    <div class="ac-exec-image-placeholder" id="acImagePlaceholder">选择左侧文件以预览</div>
+                  </div>
+                  <div class="ac-exec-image-actions">
+                    <button type="button" class="ac-image-rotate-btn" id="acRotateLeft" title="左转90度（视图旋转，不修改文件）">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                      左转90°
+                    </button>
+                    <button type="button" class="ac-image-rotate-btn" id="acRotateRight" title="右转90度（视图旋转，不修改文件）">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                      右转90°
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 控制台弹窗 -->
+      <div class="ac-exec-console-overlay" id="acExecConsole" style="display:none">
+        <div class="ac-exec-console-panel">
+          <div class="ac-exec-console-header">
+            <span>控制台输出</span>
+            <button type="button" class="ac-exec-console-close" id="acExecConsoleClose">&times;</button>
+          </div>
+          <div class="ac-exec-console-body" id="acExecConsoleBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,146 @@
+<div class="panel-filter">
+  <div class="pf-main" id="pfMain">
+    <div class="pf-ring-section">
+      <div class="pattern-layer"></div>
+ 
+      <div class="ring-wrap" id="ringWrap">
+        <!-- 内侧两道半封闭装饰圆环 -->
+        <svg class="arc-svg animated" id="arcSvgInner" viewBox="0 0 520 520" width="520" height="520" aria-hidden="true">
+          <path id="innerArc2" d="" stroke="rgba(61,99,144,0.35)" stroke-width="2" />
+          <path id="innerArc1" d="" stroke="rgba(61,99,144,0.65)" stroke-width="2" />
+        </svg>
+ 
+        <!-- 外侧四道装饰弧线 -->
+        <svg class="arc-svg brush subtle" id="arcSvgOuterSubtle" viewBox="0 0 800 800" width="800" height="800" aria-hidden="true">
+          <path id="arcLL_sub" d="" fill="rgba(61,99,144,0.45)" stroke="none" />
+          <path id="arcUR_sub" d="" fill="rgba(61,99,144,0.45)" stroke="none" />
+        </svg>
+        <svg class="arc-svg brush animated" id="arcSvgOuterMain" viewBox="0 0 800 800" width="800" height="800" aria-hidden="true">
+          <path id="arcLL_main" d="" fill="rgba(61,99,144,0.80)" stroke="none" />
+          <path id="arcUR_main" d="" fill="rgba(61,99,144,0.80)" stroke="none" />
+        </svg>
+ 
+        <div class="ring-inner-glow"></div>
+ 
+        <svg class="main-ring" viewBox="0 0 400 400" role="img" aria-label="境界进度环">
+          <defs>
+            <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="var(--chinese-green)" />
+              <stop offset="25%" stop-color="#7BC47F" />
+              <stop offset="50%" stop-color="var(--chinese-green)" />
+              <stop offset="100%" stop-color="#5BB6D4" />
+            </linearGradient>
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="5" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+          <circle class="ring-bg" cx="200" cy="200" r="180" />
+          <circle id="progressCircle" class="ring-progress" cx="200" cy="200" r="180" />
+        </svg>
+ 
+        <div class="center-info">
+          <div class="ring-start" id="ringStart">
+            <button class="ring-start-btn" id="startBtn">开始</button>
+          </div>
+          <div class="ring-progress-info" id="ringProgressInfo" style="display:none">
+            <div class="rp-label">进度</div>
+            <div class="rp-percent" id="rpPercent">0<span class="rp-pct">%</span></div>
+            <div class="rp-detail"><span id="rpDone">0</span> / <span id="rpTotal">-</span></div>
+          </div>
+  </div>
+</div>
+ 
+<!-- 筛检确认弹窗 -->
+<div class="collect-modal-overlay" id="filterConfirmModal" style="display:none">
+  <div class="collect-modal-card">
+    <div class="collect-modal-header">确认进入下一步</div>
+    <div class="collect-modal-body">
+      <p style="font-size:14px;text-align:center;letter-spacing:1px;line-height:1.8;margin:0">
+        <span style="color:var(--danger);font-weight:600">废片将被移入「废弃物」文件夹，不可恢复。</span><br>
+        <span style="color:var(--text-secondary)">此操作不可逆。</span>
+      </p>
+    </div>
+    <div class="collect-modal-actions" style="gap:16px">
+      <button type="button" class="collect-modal-btn collect-modal-btn-cancel" id="filterConfirmCancel">取消</button>
+      <button type="button" class="collect-modal-btn collect-modal-btn-confirm lp-btn" id="filterConfirmBtn">
+        <span class="lp-fill" id="filterLpFill"></span>
+        <span class="lp-text" id="filterLpText">长按 3s 确认</span>
+      </button>
+    </div>
+  </div>
+</div>
+    </div>
+    <div class="pf-content-section" id="pfContentSection">
+      <div class="pf-card pf-card-1 bg_card">
+        <div class="pf-card-body">
+          <div class="pf-card-num">01</div>
+          <div class="pf-card-label">过曝欠曝</div>
+          <div class="pf-card-stats">
+            <span class="pf-card-count" id="wasteCount2">0</span>
+            <button class="pf-card-btn" data-type="2">
+              <svg viewBox="0 0 1024 1024" width="28" height="28"><path d="M340.688 830.24l11.312 11.328a16 16 0 0 0 22.624 0L685.76 530.448a16 16 0 0 0 0-22.64L374.624 196.688a16 16 0 0 0-22.624 0l-11.312 11.312a16 16 0 0 0 0 22.624l288.496 288.496-288.496 288.512a16 16 0 0 0 0 22.624z" fill="currentColor"></path></svg>
+            </button>
+          </div>
+        </div>
+        <div class="pf-card-ornament"></div>
+      </div>
+      <div class="pf-card pf-card-2 bg_card">
+        <div class="pf-card-body">
+          <div class="pf-card-num">02</div>
+          <div class="pf-card-label">模糊不清</div>
+          <div class="pf-card-stats">
+            <span class="pf-card-count" id="wasteCount3">0</span>
+            <button class="pf-card-btn" data-type="3">
+              <svg viewBox="0 0 1024 1024" width="28" height="28"><path d="M340.688 830.24l11.312 11.328a16 16 0 0 0 22.624 0L685.76 530.448a16 16 0 0 0 0-22.64L374.624 196.688a16 16 0 0 0-22.624 0l-11.312 11.312a16 16 0 0 0 0 22.624l288.496 288.496-288.496 288.512a16 16 0 0 0 0 22.624z" fill="currentColor"></path></svg>
+            </button>
+          </div>
+        </div>
+        <div class="pf-card-ornament"></div>
+      </div>
+      <div class="pf-card pf-card-3 bg_card">
+        <div class="pf-card-body">
+          <div class="pf-card-num">03</div>
+          <div class="pf-card-label">内容无物</div>
+          <div class="pf-card-stats">
+            <span class="pf-card-count" id="wasteCount4">0</span>
+            <button class="pf-card-btn" data-type="4">
+              <svg viewBox="0 0 1024 1024" width="28" height="28"><path d="M340.688 830.24l11.312 11.328a16 16 0 0 0 22.624 0L685.76 530.448a16 16 0 0 0 0-22.64L374.624 196.688a16 16 0 0 0-22.624 0l-11.312 11.312a16 16 0 0 0 0 22.624l288.496 288.496-288.496 288.512a16 16 0 0 0 0 22.624z" fill="currentColor"></path></svg>
+            </button>
+          </div>
+        </div>
+        <div class="pf-card-ornament"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 筛检进度弹窗 -->
+<div class="collect-modal-overlay" id="filterProgressModal" style="display:none">
+  <div class="collect-modal-card fpm-card">
+    <div class="collect-modal-header" style="color:var(--chinese-green)">正在筛检常规素材</div>
+    <div class="collect-modal-body">
+      <div class="fpm-progress-track">
+        <div class="fpm-progress-fill" id="fpmProgressFill"></div>
+      </div>
+      <div class="fpm-stats">
+        <span id="fpmDone">0</span> / <span id="fpmTotal">0</span>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<!-- 废片查看面板 -->
+<div class="waste-viewer-overlay" id="wasteViewer">
+  <div class="waste-viewer-panel">
+    <div class="waste-viewer-header">
+      <span class="waste-viewer-title" id="wasteViewerTitle"></span>
+      <button class="waste-viewer-close" id="wasteViewerClose">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </button>
+    </div>
+    <div class="waste-viewer-grid" id="wasteViewerGrid"></div>
+    <div class="waste-viewer-footer" id="wasteViewerFooter">
+      <span style="color:var(--danger);font-size:13px">双击拯救照片，单击取消拯救</span>
+    </div>
+  </div>
+</div>

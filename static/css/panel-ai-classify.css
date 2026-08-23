@@ -1,0 +1,1505 @@
+/* ===========================================================================
+   AI 分类面板 — 纹样底层 + 磨砂玻璃方块 + 进度数字
+   =========================================================================== */
+ 
+.panel-aiclassify {
+  width: 100%;
+  /* 自然高度渲染，绝不强制压缩/裁切；内容完整显示 */
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  animation: acFadeIn 0.6s ease forwards;
+}
+
+@keyframes acFadeIn {
+  to { opacity: 1; }
+}
+
+.ac-main {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  min-height: 0;
+}
+
+/* ---------- 左栏（75% 缩放的装饰图，贴页面左侧） ---------- */
+.ac-left {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 2%;
+  padding-right: 24px;
+}
+
+/* ---------- 分割线（与右面切分） ---------- */
+.ac-divider {
+  flex-shrink: 0;
+  width: 1px;
+  margin: 48px 0;
+  background: linear-gradient(
+    180deg,
+    rgba(61, 99, 144, 0) 0%,
+    rgba(61, 99, 144, 0.4) 18%,
+    rgba(63, 143, 126, 0.4) 82%,
+    rgba(63, 143, 126, 0) 100%
+  );
+}
+
+/* ---------- 右面（预留区） ---------- */
+.ac-aside {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 0 0 24px;
+  min-width: 0;
+  min-height: 0;
+  /* 不再整体 hidden 硬裁：四周柔光/描边可完整显示。
+     纵向超高交给 .ac-photo-panel 的 overflow-y:auto 在内部滚动，不溢到整页 */
+  overflow: visible;
+}
+ 
+/* ---------- 容器 ---------- */
+.ac-astrolabe {
+  position: relative;
+  width: 315px;
+  height: 315px;
+  flex-shrink: 0;
+  opacity: 0;
+  animation: acReveal 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards;
+}
+ 
+@keyframes acReveal {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+ 
+/* ---------- 纹样底层（千里江山蓝绿渐变 85%） ---------- */
+.ac-pattern {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  opacity: 0.85;
+  transform: scale(1.18, 1.14);
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse 60% 58% at 50% 50%, #000 35%, rgba(0, 0, 0, 0.45) 70%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 60% 58% at 50% 50%, #000 35%, rgba(0, 0, 0, 0.45) 70%, transparent 100%);
+}
+ 
+/* ---------- 角饰纹样层（缩小减淡 + 羽化） ---------- */
+.ac-ornament {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 62%;
+  height: 62%;
+  transform: translate(-50%, -50%) rotate(90deg);
+  z-index: 1;
+  opacity: 0.32;
+  filter: blur(2px);
+  -webkit-filter: blur(2px);
+  pointer-events: none;
+}
+ 
+/* ---------- 4 个磨砂玻璃小方块（呼吸幅度小） ---------- */
+.ac-squares {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 135px;
+  height: 135px;
+  margin: -67.5px 0 0 -67.5px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+  z-index: 2;
+}
+ 
+.ac-square {
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(61, 99, 144, 0.65);
+  box-shadow: 0 0 14px rgba(61, 99, 144, 0.5), inset 0 0 8px rgba(61, 99, 144, 0.2);
+  animation: acBreathe 3s ease-in-out infinite;
+}
+ 
+.ac-sq-1 { animation-delay: 0s; }
+.ac-sq-2 { animation-delay: 0.4s; }
+.ac-sq-3 { animation-delay: 0.8s; }
+.ac-sq-4 { animation-delay: 1.2s; }
+ 
+@keyframes acBreathe {
+  0%, 100% { transform: scale(0.97); opacity: 0.7; }
+  50%      { transform: scale(1.03); opacity: 0.9; }
+}
+ 
+/* ---------- 进度数字 ---------- */
+.ac-progress {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  pointer-events: none;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+ 
+.ac-progress-num {
+  font-family: "ZhengQingSongTi", "Microsoft YaHei", serif;
+  font-size: 62px;
+  font-weight: 700;
+  line-height: 1;
+  color: #2EA98E;
+  letter-spacing: -1px;
+  filter: drop-shadow(0 0 6px rgba(46, 169, 142, 0.6)) drop-shadow(0 0 22px rgba(46, 169, 142, 0.45));
+}
+ 
+.ac-progress-pct {
+  font-family: "ZhengQingSongTi", "Microsoft YaHei", serif;
+  font-size: 23px;
+  font-weight: 700;
+  color: #2EA98E;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+ 
+/* ---------- 分类模式切换：药丸滑块（视频 / 照片） ---------- */
+.ac-mode-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px;
+  margin-bottom: 20px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(61, 99, 144, 0.16);
+  box-shadow: 0 2px 10px rgba(60, 110, 90, 0.08);
+}
+
+/* 滑块移到全局底部栏（「下一步」按钮左侧）后的适配 */
+.sf-bar .ac-mode-switch {
+  margin: 0;
+  margin-left: auto;
+  margin-right: 18px;
+}
+
+.ac-mode-thumb {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  height: calc(100% - 8px);
+  border-radius: 9999px;
+  background: linear-gradient(135deg, var(--chinese-green), #3C6E60);
+  box-shadow: 0 2px 8px rgba(46, 169, 142, 0.4);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), width 0.3s ease;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.ac-mode-item {
+  position: relative;
+  z-index: 1;
+  padding: 8px 22px;
+  border: none;
+  background: transparent;
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.25s ease;
+}
+
+.ac-mode-item:hover:not(.is-active) {
+  color: var(--chinese-green);
+}
+
+.ac-mode-item.is-active {
+  color: #fff;
+}
+
+/* 任务进行中：锁定滑块，禁止切换 */
+.ac-mode-switch.is-locked {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* ---------- 照片分类面板（计划对话：输入 + 发送 + 回复） ---------- */
+.ac-photo-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* 四向 13px 留白：≥ 发光最大扩散 12px + 1px 描边，四边柔光完整显示不被裁 */
+  padding: 13px;
+  /* 原 margin-top:8px，抵消 padding-top 增量(13-8)，输入区视觉起点保持原位 */
+  margin-top: -5px;
+}
+
+.ac-plan {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---- 输入条（亮蓝跑马灯边框作用目标） ---- */
+.ac-plan-inputbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 18px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(61, 99, 144, 0.16);
+  box-shadow: 0 2px 12px rgba(60, 110, 90, 0.08);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+@property --acp-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* 跑马灯边框：旋转的亮蓝流光环，仅 .is-loading 时可见 */
+.ac-plan-inputbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--acp-angle, 0deg),
+    rgba(74, 158, 212, 0) 0deg,
+    #4A9ED4 60deg,
+    #6CE0BB 150deg,
+    rgba(74, 158, 212, 0) 250deg,
+    rgba(74, 158, 212, 0) 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: acPlanBorderFlow 2.4s linear infinite;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ac-plan-inputbar.is-loading {
+  box-shadow: 0 0 0 1px rgba(74, 158, 212, 0.4), 0 0 24px rgba(108, 224, 187, 0.5);
+}
+
+.ac-plan-inputbar.is-loading::before {
+  opacity: 1;
+}
+
+@keyframes acPlanBorderFlow {
+  to { --acp-angle: 360deg; }
+}
+
+.ac-plan-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: "ZhengQingSongTi", "Microsoft YaHei", "PingFang SC", "SimHei", sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  resize: none;
+  overflow-y: auto;
+  max-height: 96px;
+  padding: 9px 0;
+}
+
+.ac-plan-input::placeholder {
+  color: var(--text-secondary);
+}
+
+/* ---- 自绘发送按钮（纸飞机） ---- */
+.ac-plan-send {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(135deg, var(--chinese-green), #3C6E60);
+  box-shadow: 0 4px 14px rgba(46, 169, 142, 0.35);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+}
+
+.ac-plan-send:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 18px rgba(46, 169, 142, 0.45);
+}
+
+.ac-plan-send:active:not(:disabled) {
+  transform: translateY(0) scale(0.96);
+}
+
+.ac-plan-send:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* ---- 输入条渐隐消失（计划完成后） ---- */
+.ac-plan-inputbar.acp-fade-out {
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* ---- 开始执行按钮（占位，计划完成后替代输入条） ---- */
+.ac-plan-execute {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 30px;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  color: #fff;
+  font-family: "ZhengQingSongTi", "Microsoft YaHei", "PingFang SC", "SimHei", sans-serif;
+  font-size: 15px;
+  letter-spacing: 3px;
+  background: linear-gradient(135deg, var(--chinese-green), #3C6E60);
+  box-shadow: 0 4px 16px rgba(46, 169, 142, 0.35);
+  animation: acPlanExecuteIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.ac-plan-execute:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 6px 20px rgba(46, 169, 142, 0.45);
+}
+
+.ac-plan-execute:active {
+  transform: translateY(0) scale(0.97);
+}
+
+@keyframes acPlanExecuteIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---- 回复小面板（输入区下方） ---- */
+.ac-plan-reply {
+  margin-top: 14px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(61, 99, 144, 0.14);
+  box-shadow: 0 4px 18px rgba(60, 110, 90, 0.08);
+  max-height: 340px;
+  overflow-y: auto;
+  animation: acPlanReplyIn 0.35s ease;
+}
+
+@keyframes acPlanReplyIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ac-plan-label {
+  display: inline-block;
+  padding: 2px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--chinese-green), #3C6E60);
+  margin-bottom: 10px;
+}
+
+.ac-plan-question {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.ac-plan-question-list {
+  margin: 6px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ac-plan-question-list li {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.ac-plan-hint {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(61, 99, 144, 0.16);
+  font-size: 12px;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+}
+
+.ac-plan-summary {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--chinese-green);
+  letter-spacing: 1px;
+}
+
+.ac-plan-steps {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ac-plan-step {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(61, 99, 144, 0.12);
+}
+
+.ac-plan-step-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.ac-plan-step-num {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fff;
+  background: linear-gradient(135deg, #3D6390, #3C6E60);
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.ac-plan-step-desc {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+
+.ac-plan-step-meta {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  line-height: 1.6;
+}
+
+.ac-plan-folders {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ac-plan-folder {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(46, 169, 142, 0.05);
+}
+
+.ac-plan-folder-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--chinese-green);
+  letter-spacing: 1px;
+}
+
+.ac-plan-folder-criteria,
+.ac-plan-folder-operation {
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  letter-spacing: 0.3px;
+}
+
+.ac-plan-step-result {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(61, 99, 144, 0.16);
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  letter-spacing: 0.3px;
+}
+
+/* ---- 错误提示 ---- */
+.ac-plan-error {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(192, 86, 79, 0.08);
+  border: 1px solid rgba(192, 86, 79, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  animation: acPlanReplyIn 0.3s ease;
+}
+
+.ac-plan-error-msg {
+  font-size: 13px;
+  color: #C0564F;
+  letter-spacing: 0.5px;
+}
+
+.ac-plan-retry {
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 16px;
+  border: 1px solid #C0564F;
+  border-radius: 999px;
+  background: transparent;
+  color: #C0564F;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.ac-plan-retry:hover {
+  background: #C0564F;
+  color: #fff;
+}
+
+/* ===========================================================================
+   照片模式左栏 — 文件夹结构树（样式取自 abc 左栏，原样搬入）
+   变量原为 abc 的 :root，挂到 .tree-panel 作用域：解析结果一致，且不污染全站
+   =========================================================================== */
+
+.tree-panel {
+  /* abc :root 变量（原样） */
+  --gfql-primary-50: #E8F2F0;
+  --gfql-primary-100: #CEE5E0;
+  --gfql-primary-200: #A0CDC2;
+  --gfql-primary-300: #72B5A4;
+  --gfql-primary-400: #509D8A;
+  --gfql-primary-500: #4A8575;
+  --gfql-primary-600: #3C6E60;
+  --gfql-primary-700: #2E564B;
+  --gfql-neutral-50: #F7F8FA;
+  --gfql-neutral-100: #EDF0F4;
+  --gfql-neutral-200: #DCE1E8;
+  --gfql-neutral-300: #BCC3CE;
+  --gfql-neutral-400: #919BA8;
+  --gfql-neutral-500: #6B7685;
+  --gfql-neutral-600: #4A5568;
+  --gfql-neutral-700: #384252;
+  --gfql-neutral-800: #262F3D;
+  --gfql-gold-500: #B8956A;
+  --gfql-bamboo-500: #5B7A8A;
+  --color-primary: var(--gfql-primary-500);
+  --color-primary-container: var(--gfql-primary-50);
+  --color-background: #FAFAF8;
+  --color-foreground: var(--gfql-neutral-800);
+  --color-surface: #FFFFFF;
+  --color-muted-foreground: var(--gfql-neutral-400);
+  --color-border: var(--gfql-neutral-200);
+  --font-body: 'Microsoft YaHei', 'PingFang SC', 'SimHei', system-ui, sans-serif;
+  --font-heading: 'Microsoft YaHei', 'PingFang SC', 'SimHei', system-ui, sans-serif;
+  --font-mono: 'Consolas', 'Courier New', monospace;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-2: 0 4px 12px rgba(60,110,90,0.10);
+
+  /* 左面板：竖向偏高（原来 515 太长导致上下裁切），适度降低高度；宽度保持协调 */
+  width: 280px;
+  min-width: 280px;
+  height: 470px;
+  position: relative;
+  border-right: 1px solid var(--color-border);
+  box-shadow: var(--shadow-2);
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+.tree-panel .panel-bg {
+  position: absolute; inset: 0;
+  background-image: url('/static/images/heron-bg.jpg');
+  background-size: cover;
+  background-position: right bottom;
+  background-repeat: no-repeat;
+  z-index: 0;
+}
+
+/* 渐变模糊层：自绘同款背景图 + filter:blur + mask 渐隐（上模糊下清晰）。
+   原型为 backdrop-filter+mask，但该组合在 Chromium 下 mask 无法使模糊强度渐变，
+   此写法视觉等价且渲染可靠 */
+.tree-panel .panel-blur {
+  position: absolute; inset: 0;
+  background-image: url('/static/images/heron-bg.jpg');
+  background-size: cover;
+  background-position: right bottom;
+  background-repeat: no-repeat;
+  filter: blur(10px);
+  transform: scale(1.05);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0) 75%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0) 75%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.tree-panel .panel-content {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; height: 100%;
+}
+
+.tree-panel .panel-header {
+  padding: 16px; padding-bottom: 12px;
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(220,225,232,0.6);
+}
+
+.tree-panel .panel-title {
+  font-family: var(--font-heading);
+  font-size: 16px; font-weight: 600;
+  color: var(--color-primary);
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tree-panel .panel-title svg { color: var(--color-primary); }
+
+.tree-panel .search-box {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.7);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.tree-panel .search-box input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-family: var(--font-body); font-size: 12px; color: var(--color-foreground);
+}
+
+.tree-panel .search-box input::placeholder { color: var(--color-muted-foreground); }
+
+.tree-panel .search-box svg { color: var(--color-muted-foreground); flex-shrink: 0; }
+
+.tree-panel .tree-container {
+  flex: 1; overflow-y: auto; padding: 8px 0;
+}
+
+.tree-panel .tree-container::-webkit-scrollbar { width: 4px; }
+.tree-panel .tree-container::-webkit-scrollbar-track { background: transparent; }
+.tree-panel .tree-container::-webkit-scrollbar-thumb { background: var(--gfql-neutral-300); border-radius: 2px; }
+
+.tree-panel .tree-row {
+  display: flex; align-items: center;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-size: 14px; line-height: 1.5;
+  border-left: 3px solid transparent;
+  user-select: none;
+}
+
+.tree-panel .tree-row:hover { background: rgba(74,133,117,0.08); }
+
+.tree-panel .tree-row.selected {
+  background: var(--color-primary-container);
+  border-left-color: var(--color-primary);
+  font-weight: 500;
+}
+
+.tree-panel .tree-row.selected .tree-name { color: var(--color-primary); }
+
+.tree-panel .chev {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; margin-right: 4px; flex-shrink: 0;
+}
+
+.tree-panel .chev svg { width: 14px; height: 14px; color: var(--color-muted-foreground); transition: transform 0.2s ease; }
+
+.tree-panel .ticon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; margin-right: 8px; flex-shrink: 0;
+}
+
+.tree-panel .ticon svg { width: 18px; height: 18px; }
+.tree-panel .ticon.folder svg { color: var(--gfql-primary-500); }
+.tree-panel .ticon.image svg { color: var(--gfql-bamboo-500); }
+.tree-panel .ticon.json svg { color: var(--gfql-gold-500); }
+.tree-panel .ticon.file svg { color: var(--gfql-neutral-400); }
+
+.tree-panel .tree-name {
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--color-foreground);
+}
+
+.tree-panel .tree-children {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.25s ease;
+}
+
+/* ---------- 视频分类面板 ---------- */
+.ac-video-panel {
+  margin-top: 28px;
+}
+ 
+.ac-video-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+ 
+.ac-video-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 3px;
+}
+ 
+.ac-video-start {
+  height: 38px;
+  padding: 0 24px;
+  border: 1px solid var(--chinese-qing);
+  border-radius: 999px;
+  background: var(--chinese-qing);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+ 
+.ac-video-start:hover {
+  background: #33557F;
+  transform: translateY(-2px) scale(1.02);
+}
+ 
+.ac-video-start:active {
+  transform: translateY(0);
+}
+ 
+.ac-video-start:disabled {
+  background: #9E9E9E !important;
+  border-color: #9E9E9E !important;
+  color: #D6D6D6 !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+  transform: none !important;
+}
+ 
+/* ---------- Windows 风格不确定进度条（行内） ---------- */
+.ac-ind-track {
+  display: none;
+  position: relative;
+  height: 7px;
+  width: 160px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+ 
+.ac-ind-track.is-active {
+  display: block;
+}
+ 
+.ac-ind-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 40%;
+  border-radius: 3px;
+  background: #5B9CB8;
+  box-shadow: 0 0 8px rgba(91, 156, 184, 0.6);
+  animation: acIndSlide 1.2s ease-in-out infinite;
+}
+ 
+@keyframes acIndSlide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(360%); }
+}
+ 
+/* ---------- 视频列表 ---------- */
+.ac-video-list {
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 6px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(61, 99, 144, 0.14);
+}
+ 
+.ac-video-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  transition: background 0.2s ease;
+}
+ 
+.ac-video-row + .ac-video-row {
+  border-top: 1px dashed rgba(61, 99, 144, 0.12);
+}
+ 
+.ac-video-row:hover {
+  background: rgba(46, 169, 142, 0.06);
+}
+ 
+.ac-video-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.3s ease;
+}
+ 
+.ac-video-row.is-running .ac-video-name {
+  color: var(--chinese-green);
+}
+ 
+.ac-video-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+ 
+.ac-video-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+ 
+.ac-tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--chinese-green);
+  background: rgba(46, 169, 142, 0.1);
+  border: 1px solid rgba(46, 169, 142, 0.28);
+  white-space: nowrap;
+}
+ 
+.ac-tag-fail {
+  color: #C0564F;
+  background: rgba(192, 86, 79, 0.1);
+  border-color: rgba(192, 86, 79, 0.35);
+}
+ 
+.ac-video-empty {
+  padding: 26px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+}
+ 
+/* ---------- 运行中特效（与 step2 一致的动态感） ---------- */
+.ac-astrolabe.is-running .ac-square {
+  border-color: rgba(46, 169, 142, 0.8);
+  box-shadow: 0 0 18px rgba(46, 169, 142, 0.55), inset 0 0 8px rgba(46, 169, 142, 0.25);
+  transition: border-color 0.6s ease, box-shadow 0.6s ease;
+}
+ 
+.ac-astrolabe.is-running .ac-progress-num {
+  animation: acNumPulse 2s ease-in-out infinite;
+}
+ 
+@keyframes acNumPulse {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(46, 169, 142, 0.6)) drop-shadow(0 0 22px rgba(46, 169, 142, 0.45)); }
+  50%      { filter: drop-shadow(0 0 8px rgba(46, 169, 142, 0.8)) drop-shadow(0 0 30px rgba(46, 169, 142, 0.65)); }
+}
+
+/* ===========================================================================
+   照片分类执行态 — 左树面板与右侧对话区的亮绿色跑马灯流光
+   （与输入条 is-loading 同一手法，色系换成绿）
+   =========================================================================== */
+
+@property --acx-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* 左侧文件树面板：执行时容器外发光（box-shadow 绘制在盒外，不被 overflow 裁切） */
+.tree-panel.is-classifying {
+  border-color: rgba(205, 174, 133, 0.5);
+  box-shadow: 0 0 0 1px rgba(205, 174, 133, 0.3), 0 0 28px rgba(205, 174, 133, 0.38);
+}
+
+/* 跑马灯流光：略微内缩（inset:3px），完整落在容器可视区内不被裁切 */
+.tree-panel.is-classifying::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 15px;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--acx-angle, 0deg),
+    rgba(205, 174, 133, 0) 0deg,
+    #E1C9A6 60deg,
+    #CDAE85 150deg,
+    rgba(205, 174, 133, 0) 250deg,
+    rgba(205, 174, 133, 0) 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: acxGoldFlow 2.4s linear infinite;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* 右侧对话区：执行时成为磨砂玻璃容器 + 亮绿柔光 */
+.ac-plan.is-classifying {
+  position: relative;
+  flex: 1;
+  min-height: 360px;
+  padding: 18px 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(108, 224, 187, 0.4), 0 0 24px rgba(108, 224, 187, 0.28);
+}
+
+@keyframes acxGoldFlow {
+  to { --acx-angle: 360deg; }
+}
+
+/* ===========================================================================
+   执行日志面板 — 每轮提示词 / AI 输出 / 工具调用全记录
+   =========================================================================== */
+
+.ac-log-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border-left: 3px solid rgba(91, 122, 138, 0.35);
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.ac-log-meta {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--text-secondary, #5b6b76);
+  opacity: 0.85;
+}
+
+.ac-log-text {
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: "Consolas", "Courier New", "ZhengQingSongTi", monospace;
+  color: var(--text-primary, #26333f);
+}
+
+/* 种类配色：绿蓝白体系内区分 */
+.ac-log-system  { border-left-color: #8FA8B8; }
+.ac-log-user    { border-left-color: #4A8575; }
+.ac-log-assistant { border-left-color: #2EA98E; background: rgba(46, 169, 142, 0.07); }
+.ac-log-tool_call { border-left-color: #3D6390; background: rgba(61, 99, 144, 0.06); }
+.ac-log-tool_result { border-left-color: #7FB5D8; }
+.ac-log-image   { border-left-color: #A0CDC2; }
+.ac-log-info    { border-left-color: #BCC3CE; background: transparent; }
+.ac-log-error   { border-left-color: #C0564F; background: rgba(192, 86, 79, 0.07); }
+
+.ac-log-entry.ac-log-info .ac-log-text,
+.ac-log-entry.ac-log-error .ac-log-text {
+  font-family: "ZhengQingSongTi", "Microsoft YaHei", sans-serif;
+}
+
+/* ===========================================================================
+   API 失败确认弹窗 — 继续重试 / 停止任务
+   =========================================================================== */
+
+.ac-api-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(38, 51, 63, 0.28);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  animation: acPlanReplyIn 0.25s ease;
+}
+
+.ac-api-confirm-card {
+  width: min(380px, 86vw);
+  padding: 28px 26px 24px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(46, 169, 142, 0.28);
+  box-shadow: 0 20px 55px rgba(38, 51, 63, 0.28);
+  text-align: center;
+  animation: acPlanExecuteIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ac-api-confirm-title {
+  font-size: 17px;
+  letter-spacing: 3px;
+  color: #C0564F;
+  margin-bottom: 12px;
+}
+
+.ac-api-confirm-text {
+  font-size: 13.5px;
+  line-height: 1.7;
+  letter-spacing: 1px;
+  color: var(--text-primary, #26333f);
+  margin-bottom: 22px;
+}
+
+.ac-api-confirm-btns {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+}
+
+.ac-api-confirm-btn {
+  height: 42px;
+  padding: 0 26px;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  font-family: "ZhengQingSongTi", "Microsoft YaHei", "PingFang SC", "SimHei", sans-serif;
+  font-size: 14px;
+  letter-spacing: 2px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.ac-api-confirm-btn.is-ok {
+  color: #fff;
+  background: linear-gradient(135deg, var(--chinese-green, #4A8575), #3C6E60);
+  box-shadow: 0 4px 14px rgba(46, 169, 142, 0.35);
+}
+
+.ac-api-confirm-btn.is-ok:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(46, 169, 142, 0.45);
+}
+
+.ac-api-confirm-btn.is-stop {
+  color: #6B7685;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(107, 118, 133, 0.35);
+}
+
+.ac-api-confirm-btn.is-stop:hover {
+  color: #C0564F;
+  border-color: rgba(192, 86, 79, 0.45);
+  transform: translateY(-2px);
+}
+
+.ac-api-confirm-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* ===========================================================================
+   执行态UI — 红色状态栏 + 滚动文字 + 两栏布局 + Token统计 + 圆环 + 图片预览器
+   =========================================================================== */
+
+/* 执行态容器（底部留白，避免压到"下一步"上方的分割线） */
+.ac-exec-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 18px;
+  animation: acPlanReplyIn 0.35s ease;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 顶部执行态状态栏（青瓷绿系，运行中语义） */
+.ac-exec-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 46px;
+  padding: 0 18px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(46, 169, 142, 0.4);
+  box-shadow: 0 0 0 2px rgba(46, 169, 142, 0.12), 0 2px 14px rgba(46, 169, 142, 0.16);
+  cursor: pointer;
+  transition: box-shadow 0.25s ease, transform 0.2s ease;
+  user-select: none;
+  animation: acBarIn 0.4s ease;
+}
+
+.ac-exec-bar:hover {
+  box-shadow: 0 0 0 3px rgba(46, 169, 142, 0.22), 0 4px 20px rgba(46, 169, 142, 0.28);
+  transform: scale(1.01);
+}
+
+.ac-exec-bar:active {
+  transform: scale(0.98);
+}
+
+@keyframes acBarIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 青瓷绿呼吸圆点 */
+.ac-exec-bar-dot {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #2EA98E;
+  box-shadow: 0 0 8px rgba(46, 169, 142, 0.9);
+  animation: acGreenDotPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes acGreenDotPulse {
+  0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 8px rgba(46, 169, 142, 0.9); }
+  50%      { transform: scale(1.3); opacity: 0.7; box-shadow: 0 0 16px rgba(46, 169, 142, 0.6); }
+}
+
+/* 顶部灯条文字：静态单行（不滚动字幕），点击进入控制台 */
+.ac-exec-bar-text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.5;
+  overflow: hidden;
+  font-size: 13.5px;
+  letter-spacing: 0.5px;
+  color: var(--text-primary, #26333f);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 下部分两栏 */
+.ac-exec-bottom {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  min-height: 0;
+}
+
+/* 左栏 */
+.ac-exec-left-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 右栏 */
+.ac-exec-right-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  /* 关键：flex item 默认 min-height:auto（=内容高），会导致右栏被竖屏图撑高，
+     使上方容器高度失去约束、预览框被竖向拉长。补 0 让高度严格由布局分配。 */
+  min-height: 0;
+}
+
+/* 通用面板标签 */
+.ac-exec-panel-label {
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--chinese-qing, #3D6390);
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+
+/* Token 用量面板 */
+.ac-exec-token-panel {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(61, 99, 144, 0.12);
+  box-shadow: 0 2px 10px rgba(60, 110, 90, 0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+.ac-exec-token-rows {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 9px;
+}
+
+.ac-exec-token-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  color: var(--text-primary, #26333f);
+}
+
+.ac-exec-token-row span:first-child {
+  color: var(--chinese-qing, #3D6390);
+}
+
+.ac-token-val {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--chinese-green, #4A8575);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 圆环进度条面板 */
+.ac-exec-donut-panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(61, 99, 144, 0.12);
+  box-shadow: 0 2px 10px rgba(60, 110, 90, 0.06);
+  min-height: 150px;
+}
+
+.ac-exec-donut-panel canvas {
+  display: block;
+}
+
+.ac-donut-center {
+  position: absolute;
+  font-family: "ZhengQingSongTi", "Microsoft YaHei", serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #2EA98E;
+  filter: drop-shadow(0 0 4px rgba(46, 169, 142, 0.4));
+  pointer-events: none;
+  user-select: none;
+  line-height: 1;
+}
+
+/* 图片预览器面板 */
+.ac-exec-image-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(61, 99, 144, 0.12);
+  box-shadow: 0 2px 10px rgba(60, 110, 90, 0.06);
+  min-height: 0;
+}
+
+.ac-exec-image-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.03);
+  position: relative;
+}
+
+.ac-exec-image-container img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+  border-radius: 6px;
+}
+
+.ac-exec-image-placeholder {
+  font-size: 13px;
+  color: var(--text-secondary, #999);
+  letter-spacing: 1px;
+}
+
+/* 图片底部操作按钮 */
+.ac-exec-image-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding-top: 10px;
+  flex-shrink: 0;
+}
+
+.ac-image-rotate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid rgba(61, 99, 144, 0.2);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text-primary, #26333f);
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ac-image-rotate-btn:hover {
+  background: rgba(74, 133, 117, 0.08);
+  border-color: var(--chinese-green, #4A8575);
+  color: var(--chinese-green, #4A8575);
+  transform: scale(1.03);
+}
+
+.ac-image-rotate-btn:active {
+  transform: scale(0.95);
+}
+
+.ac-image-rotate-btn svg {
+  flex-shrink: 0;
+}
+
+/* ===========================================================================
+   控制台弹窗
+   =========================================================================== */
+
+.ac-exec-console-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(38, 51, 63, 0.25);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  animation: acPlanReplyIn 0.2s ease;
+}
+
+.ac-exec-console-panel {
+  width: min(680px, 90vw);
+  height: min(500px, 80vh);
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(61, 99, 144, 0.2);
+  box-shadow: 0 20px 55px rgba(38, 51, 63, 0.28);
+  animation: acPlanExecuteIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+}
+
+.ac-exec-console-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(61, 99, 144, 0.1);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.ac-exec-console-header span {
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: var(--text-primary, #26333f);
+}
+
+.ac-exec-console-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  font-size: 20px;
+  color: var(--text-secondary, #999);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.ac-exec-console-close:hover {
+  background: rgba(46, 169, 142, 0.1);
+  color: #2EA98E;
+}
+
+.ac-exec-console-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ac-exec-console-body .ac-log-entry {
+  font-size: 11.5px;
+}

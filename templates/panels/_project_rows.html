@@ -1,0 +1,18 @@
+{% for p in projects %}
+<tr>
+  <td class="col-index">{{ loop.index }}</td>
+  <td class="col-name">
+    <a href="/project/{{ p.name_encoded }}" class="project-link">
+      {{- p.name -}}
+    </a>
+  </td>
+  <td class="col-date">{{ p.created_at }}</td>
+  <td class="col-action">
+    <button class="btn-dots" data-path="{{ p.path | e }}">
+      <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+        <circle cx="8" cy="3" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="8" cy="13" r="1.5"/>
+      </svg>
+    </button>
+  </td>
+</tr>
+{% endfor %}

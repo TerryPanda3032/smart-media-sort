@@ -1,0 +1,792 @@
+/* ===========================================================================
+   过滤步骤面板 — 布局
+   =========================================================================== */
+ 
+.panel-filter {
+  width: 100%;
+  min-height: 500px;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+}
+ 
+.panel-filter .pf-main {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+ 
+.panel-filter .pf-ring-section {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  --ring-size: 230px;
+  --ring-thickness: 16px;
+  position: relative;
+}
+ 
+.panel-filter .pf-content-section {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+    gap: 84px;
+    padding: 0; /* 折叠态无 padding，避免影响环居中 */
+}
+ 
+.pf-card {
+  flex: 1;
+  max-width: 27%;
+  position: relative;
+  border-radius: 28px 0 28px 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(212, 148, 106, 0.35);
+  box-shadow:
+    0 0 8px rgba(212, 148, 106, 0.12),
+    0 0 24px rgba(212, 148, 106, 0.06);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: default;
+}
+ 
+.pf-card-body {
+  position: relative;
+  z-index: 1;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+ 
+.pf-card-num {
+  font-family: "ZhengQingSongTi", "Microsoft YaHei", serif;
+  font-size: 40px;
+  font-weight: normal;
+  color: var(--chinese-green);
+  line-height: 1.15;
+  letter-spacing: 0.05em;
+}
+ 
+.pf-card-label {
+  font-family: "CustomSongTi", "Microsoft YaHei", sans-serif;
+  font-size: 20px;
+  color: var(--text-primary);
+  line-height: 1.5;
+  margin-top: 4px;
+}
+ 
+.bg_card {
+  background: linear-gradient(rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.92) 25%, rgba(255,255,255,0.45) 100%),
+              url("/static/images/bg_card.png") center/cover no-repeat;
+}
+ 
+.pf-card:hover {
+  background: linear-gradient(rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.85) 25%, rgba(255,255,255,0.55) 100%),
+              url("/static/images/bg_card.png") center/cover no-repeat;
+  border-color: rgba(212, 148, 106, 0.55);
+  transform: translateY(-3px);
+  box-shadow:
+    0 0 12px rgba(212, 148, 106, 0.22),
+    0 0 36px rgba(212, 148, 106, 0.12),
+    0 8px 24px rgba(212, 148, 106, 0.08);
+  animation-play-state: paused;
+}
+ 
+.pf-card-1 {
+  margin-top: 28px;
+}
+.pf-card-2 {
+  margin-bottom: 28px;
+}
+.pf-card-3 {
+  margin-top: 28px;
+}
+ 
+@keyframes breatheDown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
+}
+@keyframes breatheUp {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+ 
+/* 纹样装饰 — 从 circular-level-progress.html 原样移植的 140px 中式纹样，缩放为 100px */
+.pf-card-ornament {
+  position: absolute;
+  top: -15px;
+  right: -15px;
+  width: 100px;
+  height: 100px;
+  pointer-events: none;
+  opacity: 0.3;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill='none' stroke='%2378a896' stroke-width='1'%3E%3Cpath d='M50 8.6 Q73 24.3 73 50 Q73 75.7 50 91.4 Q27 75.7 27 50 Q27 24.3 50 8.6 Z'/%3E%3Cpath d='M50 21.4 Q64 31.4 64 50 Q64 68.6 50 78.6 Q36 68.6 36 50 Q36 31.4 50 21.4 Z'/%3E%3Ccircle cx='50' cy='50' r='3.6'/%3E%3Cpath d='M8.6 50 Q24.3 35.7 50 35.7 Q75.7 35.7 91.4 50 Q75.7 64.3 50 64.3 Q24.3 64.3 8.6 50 Z'/%3E%3Cpath d='M50 0 L50 14.3 M50 85.7 L50 100 M0 50 L14.3 50 M85.7 50 L100 50' opacity='0.35'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 100px 100px;
+}
+ 
+/* ===========================================================================
+    境界进度环 — 从 circular-level-progress.html 原样移植，一丝未改
+   =========================================================================== */
+ 
+:root {
+  --chinese-green: #4A8575;
+  --chinese-green-hover: #3d7566;
+  --chinese-qing: #3D6390;
+  --primary: var(--chinese-green);
+  --primary-light: #66a092;
+  --primary-dark: var(--chinese-green-hover);
+  --pattern-color: #78a896;
+  --bg: #ffffff;
+  --text: #2a3f38;
+  --ring-size: 360px;
+  --ring-thickness: 24px;
+}
+ 
+* { box-sizing: border-box; }
+ 
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  background: #ffffff;
+  color: var(--text);
+  font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Hiragino Sans GB", "WenQuanYi Micro Hei", sans-serif;
+  overflow: hidden;
+}
+ 
+/* 中式纹样底纹：中心浓、向外渐淡 */
+.pattern-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%2378a896' stroke-width='1.4'%3E%3Cpath d='M70 12 Q102 34 102 70 Q102 106 70 128 Q38 106 38 70 Q38 34 70 12 Z'/%3E%3Cpath d='M70 30 Q90 44 90 70 Q90 96 70 110 Q50 96 50 70 Q50 44 70 30 Z'/%3E%3Ccircle cx='70' cy='70' r='5'/%3E%3Cpath d='M12 70 Q34 50 70 50 Q106 50 128 70 Q106 90 70 90 Q34 90 12 70 Z'/%3E%3Cpath d='M70 0 L70 20 M70 120 L70 140 M0 70 L20 70 M120 70 L140 70' opacity='0.35'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 140px 140px;
+  mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.55) 18%, rgba(0,0,0,0.18) 34%, rgba(0,0,0,0.05) 48%, transparent 68%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.55) 18%, rgba(0,0,0,0.18) 34%, rgba(0,0,0,0.05) 48%, transparent 68%);
+  opacity: 0.9;
+}
+ 
+/* 淡晕染层次：已关闭，背景为纯白 */
+.ink-wash {
+  display: none;
+}
+ 
+.container {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+ 
+.ring-wrap {
+  position: relative;
+  width: var(--ring-size);
+  height: var(--ring-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+ 
+/* 外侧两道半封闭装饰弧线 — 复刻参考图大开口弧线 */
+.arc-svg {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  pointer-events: none;
+  overflow: visible;
+}
+.arc-svg path {
+  fill: none;
+  stroke-linecap: round;
+}
+ 
+/* 外侧弧线：用填充形状模拟毛笔笔锋，两端尖细、中段略饱满 */
+.arc-svg.brush path {
+  filter: drop-shadow(0 0 4px rgba(61, 99, 144, 0.35));
+  fill: rgba(61, 99, 144, 0.8);
+  stroke: none;
+}
+.arc-svg.brush.animated path {
+  animation: arcPulse 4.5s ease-in-out infinite alternate;
+}
+.arc-svg.brush.subtle path {
+  opacity: 0.55;
+  fill: rgba(61, 99, 144, 0.45);
+}
+ 
+/* 内侧装饰弧线：保持中式青色 */
+#arcSvgInner path {
+  stroke: rgba(61, 99, 144, 0.65);
+}
+#arcSvgInner path:first-child {
+  stroke: rgba(61, 99, 144, 0.35);
+}
+ 
+@keyframes arcPulse {
+  0% { opacity: 0.55; }
+  100% { opacity: 0.85; }
+}
+ 
+.ring-wrap svg.main-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  filter: drop-shadow(0 0 18px rgba(74,133,117,0.32)) drop-shadow(0 0 42px rgba(74,133,117,0.18));
+}
+ 
+.ring-wrap svg { width: 100%; height: 100%; }
+ 
+.ring-bg {
+  fill: none;
+  stroke: rgba(74, 133, 117, 0.14);
+  stroke-width: var(--ring-thickness);
+}
+ 
+.ring-progress {
+  fill: none;
+  stroke: url(#ringGradient);
+  stroke-width: var(--ring-thickness);
+  stroke-linecap: round;
+  stroke-dasharray: 0 1131;
+  transition: stroke-dasharray 1.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+ 
+.ring-inner-glow {
+  position: absolute;
+  inset: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(74,133,117,0.10) 0%, transparent 70%);
+  pointer-events: none;
+  animation: pulseGlow 4s ease-in-out infinite;
+}
+ 
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.04); }
+}
+ 
+.center-info {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+ 
+.lv-label {
+  font-size: 18px;
+  letter-spacing: 0.22em;
+  color: rgba(42, 63, 56, 0.55);
+  margin-bottom: 4px;
+}
+ 
+.level-number {
+  font-size: 112px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--primary);
+  filter: drop-shadow(0 0 18px rgba(74, 133, 117, 0.35));
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+ 
+.exp-text {
+  font-size: 20px;
+  color: rgba(42, 63, 56, 0.65);
+  margin-top: 10px;
+  letter-spacing: 0.12em;
+}
+ 
+.exp-text span {
+  color: var(--primary);
+  font-weight: 600;
+}
+ 
+@media (max-width: 920px) {
+  :root { --ring-size: 280px; --ring-thickness: 18px; }
+  .level-number { font-size: 78px; }
+  .exp-text { font-size: 16px; }
+}
+ 
+@media (max-width: 560px) {
+  :root { --ring-size: 220px; --ring-thickness: 16px; }
+  .level-number { font-size: 64px; }
+  .exp-text { font-size: 14px; }
+}
+ 
+/* ===========================================================================
+   修正层 — 不动上方原 CSS，仅修正因全局规则导致的溢出/尺寸问题
+   =========================================================================== */
+ 
+/* 纹样底纹限于环区内部，不铺满全屏 */
+.pf-ring-section .pattern-layer {
+  position: absolute;
+}
+ 
+/* 环大小由父容器决定，不用 :root 的 360px */
+.pf-ring-section {
+  --ring-size: 230px;
+  --ring-thickness: 16px;
+}
+ 
+/* 恢复页面滚动（参考 CSS 设了 overflow:hidden） */
+html, body {
+  overflow: visible;
+}
+ 
+/* ============ 环中心：双状态 ============ */
+ 
+/* 开始按钮状态 */
+.ring-start {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: auto;
+}
+ 
+.ring-start-btn {
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  border: 1px solid rgba(74, 133, 117, 0.3);
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--chinese-green);
+  font-family: inherit;
+  font-size: 16px;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  box-shadow:
+    0 2px 8px rgba(74, 133, 117, 0.08),
+    0 0 0 1px rgba(255,255,255,0.5) inset;
+}
+ 
+.ring-start-btn:hover {
+  border-color: rgba(74, 133, 117, 0.55);
+  background: rgba(255,255,255,0.7);
+  box-shadow:
+    0 0 18px rgba(74, 133, 117, 0.18),
+    0 0 0 1px rgba(255,255,255,0.6) inset;
+  transform: scale(1.04);
+}
+ 
+.ring-start-btn:active {
+  transform: scale(0.96);
+}
+ 
+/* 进度显示状态 */
+.ring-progress-info {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+ 
+.rp-label {
+  font-size: 14px;
+  letter-spacing: 0.22em;
+  color: var(--chinese-qing);
+  margin-bottom: 2px;
+}
+ 
+.rp-percent {
+  font-size: 64px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--primary);
+  filter: drop-shadow(0 0 18px rgba(74, 133, 117, 0.35));
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+ 
+.rp-pct {
+  font-size: 28px;
+  font-weight: 600;
+  vertical-align: super;
+  line-height: 1;
+  color: var(--primary);
+  opacity: 0.7;
+}
+ 
+.rp-detail {
+  font-size: 16px;
+  color: rgba(42, 63, 56, 0.65);
+  margin-top: 6px;
+  letter-spacing: 0.12em;
+}
+ 
+.rp-detail span {
+  color: var(--primary);
+  font-weight: 600;
+}
+ 
+/* ===========================================================================
+   修正层2 — step2 顺序相位动画流程
+   =========================================================================== */
+ 
+/* --- 初始：面板淡入、环居中、卡片隐藏 --- */
+.panel-filter {
+  opacity: 0;
+  animation: filterFadeIn 0.6s ease forwards;
+}
+@keyframes filterFadeIn {
+  to { opacity: 1; }
+}
+ 
+.panel-filter .pf-main {
+  justify-content: center;
+}
+ 
+.panel-filter .pf-content-section {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  max-width: 0;
+  overflow: hidden;
+  transition: max-width 1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+ 
+/* --- Phase ① 文字出现 --- */
+.ring-progress-info {
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.pf-text-appeared .ring-progress-info {
+  opacity: 1;
+  transform: scale(1);
+}
+ 
+/* --- Phase ② 环左移 + 内容区显现 --- */
+.pf-ring-settled .pf-content-section {
+  max-width: 1200px;
+  padding: 16px 16px 16px 125px;
+}
+ 
+/* --- Phase ③ 卡片依次浮现 + 呼吸 --- */
+.pf-card {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.pf-cards-settled .pf-card-1 {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.15s;
+  animation: breatheDown 3.6s ease-in-out infinite;
+}
+.pf-cards-settled .pf-card-2 {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.35s;
+  animation: breatheUp 3.6s ease-in-out infinite;
+}
+.pf-cards-settled .pf-card-3 {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.55s;
+  animation: breatheDown 3.6s ease-in-out infinite;
+}
+.pf-cards-settled .pf-card:hover {
+  animation-play-state: paused;
+}
+ 
+/* --- Phase ④ 外环缩小 15%（仅缩放） --- */
+.pf-arcs-shrinking .arc-svg.brush.animated path,
+.pf-arcs-shrinking .arc-svg.brush.subtle path {
+  animation: none;
+}
+.pf-arcs-shrinking .arc-svg.brush.animated,
+.pf-arcs-shrinking .arc-svg.brush.subtle {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: scale(0.85);
+  transform-origin: center center;
+}
+ 
+/* --- Phase ⑤ 外环顺时针旋转（保持缩小） --- */
+.pf-arcs-spinning .arc-svg.brush.animated {
+  animation: spinClockwise 25s linear infinite;
+  transform-origin: center center;
+}
+.pf-arcs-spinning .arc-svg.brush.subtle {
+  animation: spinClockwise 30s linear infinite;
+  transform-origin: center center;
+}
+@keyframes spinClockwise {
+  0% { transform: scale(0.85) rotate(0deg); }
+  100% { transform: scale(0.85) rotate(360deg); }
+}
+ 
+/* --- Phase ⑥ 内侧弧线逆时针旋转 --- */
+.pf-inner-spinning #arcSvgInner {
+  animation: spinCounterClockwise 30s linear infinite;
+  transform-origin: center center;
+}
+@keyframes spinCounterClockwise {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
+}
+ 
+/* --- 筛检进度弹窗 --- */
+.fpm-card {
+  width: 380px !important;
+}
+ 
+/* 弹窗关闭动画 */
+@keyframes cfadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes cslideDown {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(20px); }
+}
+.fpm-closing {
+  animation: cfadeOut 0.25s ease forwards !important;
+}
+.fpm-closing .collect-modal-card {
+  animation: cslideDown 0.25s ease forwards !important;
+}
+ 
+.fpm-progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(74, 133, 117, 0.12);
+  overflow: hidden;
+  margin-top: 8px;
+}
+ 
+.fpm-progress-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #4A9ED4, #7EC8E3, #4A9ED4);
+  transition: width 0.3s ease;
+}
+ 
+.fpm-stats {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+  margin-top: 12px;
+}
+.fpm-stats span {
+  color: var(--chinese-green);
+  font-weight: 600;
+}
+ 
+/* ===========================================================================
+    废片统计与查看
+   =========================================================================== */
+ 
+ 
+/* 统计区沉底 */
+.pf-card-stats {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding-top: 16px;
+}
+ 
+.pf-card-count {
+  font-family: "ZhengQingSongTi", "Microsoft YaHei", serif;
+  font-size: 48px;
+  line-height: 1;
+  color: var(--chinese-green);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s;
+}
+ 
+.pf-card-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: var(--chinese-qing);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+  padding: 0;
+}
+.pf-card-btn:hover {
+  transform: scale(1.12);
+  box-shadow: 0 0 14px rgba(61, 99, 144, 0.4);
+}
+.pf-card-btn:active {
+  transform: scale(0.95);
+}
+.pf-card-btn svg {
+  display: block;
+}
+ 
+/* ===========================================================================
+   废片查看面板
+   =========================================================================== */
+.waste-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.waste-viewer-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+ 
+.waste-viewer-panel {
+  width: 70vw;
+  max-width: 1000px;
+  height: 75vh;
+  max-height: 650px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow: 0 16px 64px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: scale(0.93);
+  opacity: 0;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.waste-viewer-overlay.show .waste-viewer-panel {
+  transform: scale(1);
+  opacity: 1;
+}
+ 
+.waste-viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px;
+  border-bottom: 1px solid rgba(74, 133, 117, 0.12);
+  flex-shrink: 0;
+}
+ 
+.waste-viewer-title {
+  font-family: "ZhengQingSongTi", "Microsoft YaHei", serif;
+  font-size: 24px;
+  color: var(--chinese-green);
+  letter-spacing: 0.06em;
+}
+ 
+.waste-viewer-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,0.05);
+  color: rgba(0,0,0,0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.waste-viewer-close:hover {
+  background: rgba(0,0,0,0.1);
+  color: rgba(0,0,0,0.75);
+  transform: scale(1.08);
+}
+ 
+.waste-viewer-grid {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 24px 28px;
+  align-content: start;
+}
+ 
+.waste-viewer-grid .waste-viewer-item {
+  position: relative;
+  height: 0;
+  padding-bottom: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(74, 133, 117, 0.06);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+ 
+.waste-viewer-grid .waste-viewer-item img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+.waste-viewer-grid .waste-viewer-item img:hover {
+  transform: scale(1.03);
+}
+ 
+.waste-viewer-grid .waste-viewer-item.rescued {
+  box-shadow: 0 0 0 5px #00E676, 0 0 14px rgba(0,230,118,0.4);
+}
+ 
+.waste-viewer-footer {
+  flex-shrink: 0;
+  text-align: center;
+  padding: 10px 28px 16px;
+  border-top: 1px solid rgba(74, 133, 117, 0.08);
+}
+ 
+.btn-next.lit {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+.pf-filtering .arc-svg.brush path {
+  fill: #E8C840 !important;
+  filter: drop-shadow(0 0 12px rgba(232, 200, 64, 0.6)) drop-shadow(0 0 30px rgba(232, 200, 64, 0.3));
+  transition: fill 0.8s ease, filter 0.8s ease;
+}
+.pf-filtering #arcSvgInner path {
+  stroke: #E8C840 !important;
+  filter: drop-shadow(0 0 8px rgba(232, 200, 64, 0.5));
+  transition: stroke 0.8s ease, filter 0.8s ease;
+}

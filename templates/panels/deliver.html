@@ -1,0 +1,56 @@
+<div class="panel-deliver" id="deliverPanel">
+  <!-- 万流归宗粒子流画布 -->
+  <canvas class="deliver-stream" id="deliverStream"></canvas>
+
+  <div class="deliver-stage">
+    <!-- 圆面板：白色圆盘 + icon01 纹样（边缘淡化） -->
+    <div class="deliver-core" id="deliverCore">
+      <div class="deliver-core-texture"></div>
+      <div class="deliver-core-ring"></div>
+      <div class="deliver-core-sweep"></div>
+      <div class="deliver-core-marquee"></div>
+
+      <div class="deliver-core-content">
+        <!-- 输出目录选择 -->
+        <div class="deliver-dest-prompt" id="deliverDestPrompt">请选择输出目录</div>
+        <div class="deliver-dest-name" id="deliverDestName" style="display:none"></div>
+        <button type="button" class="deliver-pick-btn" id="deliverPickBtn">
+          <span class="deliver-pick-btn-text" id="deliverPickBtnText">选择输出目录</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 右侧：两条放大横向进度条（step1 竖向柱条横置放大版） -->
+    <div class="deliver-progress-col">
+      <div class="deliver-bar">
+        <span class="deliver-bar-label">总进度</span>
+        <div class="deliver-bar-track green" id="deliverBarTotal"></div>
+        <span class="deliver-bar-num" id="deliverBarTotalNum">0%</span>
+      </div>
+      <div class="deliver-bar">
+        <span class="deliver-bar-label">当前文件</span>
+        <div class="deliver-bar-track blue" id="deliverBarCurrent"></div>
+        <span class="deliver-bar-num" id="deliverBarCurrentNum">0%</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 验证码确认弹窗 -->
+<div class="collect-modal-overlay" id="deliverCodeModal" style="display:none">
+  <div class="collect-modal-card deliver-code-card">
+    <div class="collect-modal-header">确认交付</div>
+    <div class="deliver-code-show" id="deliverCodeShow">0000</div>
+    <p class="deliver-code-hint">请依次输入上方四位验证码，完全输入后自动确认</p>
+    <div class="deliver-code-slots" id="deliverCodeSlots">
+      <input class="deliver-slot" maxlength="1" inputmode="numeric" autocomplete="off" aria-label="第1位" />
+      <input class="deliver-slot" maxlength="1" inputmode="numeric" autocomplete="off" aria-label="第2位" />
+      <input class="deliver-slot" maxlength="1" inputmode="numeric" autocomplete="off" aria-label="第3位" />
+      <input class="deliver-slot" maxlength="1" inputmode="numeric" autocomplete="off" aria-label="第4位" />
+    </div>
+    <div class="deliver-code-err" id="deliverCodeErr"></div>
+    <div class="collect-modal-actions deliver-code-actions">
+      <button type="button" class="collect-modal-btn collect-modal-btn-cancel" id="deliverCodeCancel">取消</button>
+    </div>
+  </div>
+</div>

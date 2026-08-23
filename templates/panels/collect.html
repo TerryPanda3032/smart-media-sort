@@ -1,0 +1,162 @@
+<div class="panel-collect" data-step1-locked="{{ 'true' if step1_locked else 'false' }}">
+  <div class="pc-main">
+    <!-- 左侧：线框文件夹面板 -->
+    <div class="double-frame pc-folder-panel">
+      <div class="bamboo-texture"></div>
+      {% for folder in subfolders %}
+      <div class="folder-item"
+        data-name="{{ folder.name | e }}"
+        data-author="{{ folder.author | default('') | e }}"
+        data-addwatermark="{{ 'true' if folder.get('addWatermark', True) else 'false' }}"
+        data-compressphoto="{{ 'true' if folder.get('compressPhoto', True) else 'false' }}"
+        data-compressvideo="{{ 'true' if folder.get('compressVideo', True) else 'false' }}">
+        <div class="folder-icon"></div>
+        <div class="folder-info">
+          <div class="folder-name">{{ folder.name }}</div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+ 
+    <!-- 中间：环形统计图 -->
+    <div class="pc-center-wrap">
+      <div class="chart-ring-wrap">
+        <div class="chart-ring" id="chartRing"></div>
+        <div class="ring-center">
+          <div class="ring-label">素材共</div>
+          <div class="ring-size" id="ringTotalSize">-</div>
+          <div class="ring-row">
+            <span class="ring-dot ring-dot-photo"></span>
+            <span>总计</span>
+            <span class="ring-num photo" id="ringTotalPhotos">-</span>
+            <span>照片</span>
+          </div>
+          <div class="ring-row">
+            <span class="ring-dot ring-dot-video"></span>
+            <span class="ring-num video" id="ringTotalVideos">-</span>
+            <span>视频</span>
+          </div>
+        </div>
+      </div>
+      <div class="ring-detail" id="ringDetail">
+        <div class="rd-body" id="rdBody">
+          <div class="rd-name" id="rdName"></div>
+          <div class="rd-author" id="rdAuthor"></div>
+          <div class="rd-stats" id="rdStats"></div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- 右侧：素材选择器 -->
+    <div class="pc-selector">
+      <div class="selector-top"></div>
+      <div class="selector-body">
+        <div class="selector-texture"></div>
+        <div class="selector-header">
+          <div class="fs-h-icon">
+            <svg viewBox="0 0 76 76" width="76" height="76" style="display:block">
+              <defs>
+                <linearGradient id="fsHFolderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#8CC4AD" />
+                  <stop offset="100%" stop-color="#A8D8E8" />
+                </linearGradient>
+                <filter id="circleGlow" x="-25%" y="-25%" width="150%" height="150%">
+                  <feGaussianBlur stdDeviation="2" />
+                </filter>
+              </defs>
+              <circle cx="38" cy="38" r="26" fill="none" stroke="rgba(140,196,173,0.15)" stroke-width="6" filter="url(#circleGlow)" />
+              <circle cx="38" cy="38" r="26" fill="rgba(140,196,173,0.05)" stroke="#8CC4AD" stroke-width="2" />
+              <g transform="translate(38,38) scale(1.05) translate(-20,-16)">
+                <path d="M4 4a2 2 0 012-2h6l4 4h18a2 2 0 012 2v18a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" fill="url(#fsHFolderGrad)" stroke="url(#fsHFolderGrad)" stroke-width="0.5" stroke-linejoin="round" />
+              </g>
+            </svg>
+          </div>
+          <div class="fs-h-body">
+            <div class="fs-prompt" id="fsPrompt">请选择文件夹</div>
+            <div class="fs-detail" id="fsDetail" style="display:none">
+              <div class="fs-name" id="fsName"></div>
+              <div class="fs-stat" id="fsStat"></div>
+            </div>
+          </div>
+          <button class="fs-h-btn" id="fsPickBtn">浏览</button>
+          <div class="fs-h-btn-group" id="fsCopyGroup" style="display:none">
+            <div class="fs-h-popup" id="fsCopyPopup">
+              <button type="button" class="fs-h-popup-btn" id="fsReselectBtn">重选</button>
+              <button type="button" class="fs-h-popup-btn" id="fsPopupConfirmBtn">确认</button>
+            </div>
+            <button type="button" class="fs-h-btn" id="fsCopyBtn">确认拷贝</button>
+          </div>
+        </div>
+        <div class="selector-body-grid">
+          <div class="progress-half">
+            <span class="progress-label">总进度</span>
+            <div class="vbar-col" id="vbarColLeft"></div>
+          </div>
+          <div class="progress-half">
+            <span class="progress-label">当前文件进度</span>
+            <div class="vbar-col" id="vbarColRight"></div>
+          </div>
+        </div>
+      </div>
+      <div class="selector-bottom"></div>
+    </div>
+  </div>
+</div>
+ 
+<!-- 复制素材弹窗 -->
+<div class="collect-modal-overlay" id="copyModal" style="display:none">
+  <div class="collect-modal-card">
+    <div class="collect-modal-header">复制素材</div>
+    <div class="collect-modal-body">
+      <div class="collect-modal-field">
+        <label>名称</label>
+        <input type="text" id="copyFolderName" list="folderDatalist" placeholder="输入或选择文件夹名称" />
+        <datalist id="folderDatalist">
+          {% for folder in subfolders %}
+          <option value="{{ folder.name }}">
+          {% endfor %}
+        </datalist>
+      </div>
+      <div class="collect-modal-field">
+        <label>作者</label>
+        <input type="text" id="copyAuthor" placeholder="输入作者姓名" />
+      </div>
+      <div class="collect-modal-field collect-modal-check">
+        <label><input type="checkbox" id="copyAddWatermark" checked /> 添加水印</label>
+      </div>
+      <div class="collect-modal-field collect-modal-check">
+        <label><input type="checkbox" id="copyCompressPhoto" checked /> 压缩照片</label>
+      </div>
+      <div class="collect-modal-field collect-modal-check">
+        <label><input type="checkbox" id="copyCompressVideo" checked /> 压缩视频</label>
+      </div>
+    </div>
+    <div class="collect-modal-actions">
+      <button type="button" class="collect-modal-btn collect-modal-btn-cancel" id="copyCancelBtn">取消</button>
+      <button type="button" class="collect-modal-btn collect-modal-btn-confirm" id="copyConfirmBtn">确认复制</button>
+    </div>
+  </div>
+</div>
+ 
+<!-- 下一步确认弹窗 -->
+<div class="collect-modal-overlay" id="stepConfirmModal" style="display:none">
+  <div class="collect-modal-card">
+    <div class="collect-modal-header">确认进入下一步</div>
+    <div class="collect-modal-body">
+      <p style="font-size:14px;text-align:center;letter-spacing:1px;line-height:1.8;margin:0">
+        <span style="color:var(--danger);font-weight:600">一旦确认，将锁定素材选择器，无法继续添加素材。</span><br>
+        <span style="color:var(--text-secondary)">此操作不可逆。</span>
+      </p>
+    </div>
+    <div class="collect-modal-actions" style="gap:16px">
+      <button type="button" class="collect-modal-btn collect-modal-btn-cancel" id="stepConfirmCancel">取消</button>
+      <button type="button" class="collect-modal-btn collect-modal-btn-confirm lp-btn" id="stepConfirmBtn">
+        <span class="lp-fill" id="lpFill"></span>
+        <span class="lp-text" id="lpText">长按 3s 确认</span>
+      </button>
+    </div>
+  </div>
+</div>

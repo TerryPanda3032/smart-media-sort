@@ -1,0 +1,398 @@
+/* ===========================================================================
+   交付面板 (step 4) — 万流归宗粒子流 / 白圆盘 / 边缘扫光 / 横向放大进度条
+   =========================================================================== */
+
+.panel-deliver {
+  /* 国风青绿设计库 token（guofeng-qinglv） */
+  --d-primary: #4A8575;          /* 青瓷绿 primary-500 */
+  --d-primary-deep: #3C6E60;     /* primary-600 */
+  --d-teal: #2EA98E;             /* teal-500 */
+  --d-bright-green: #6CE0BB;     /* bright-green-500（step1 总进度色） */
+  --d-blue: #5B9BD5;             /* 当前文件进度色（对齐 step1） */
+  --d-qing: #3D6390;             /* qing-500 国风青 */
+  --d-lake: #5BB6D4;             /* lake-500 */
+  --d-muted: #6B7685;            /* neutral-500 弱化文字 */
+  --d-border: #DCE1E8;           /* neutral-200 */
+  --d-gray-track: rgba(91,122,138,0.18); /* step1 灰轨道 */
+
+  position: relative;
+  width: 100%;
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden; /* 粒子流不溢出 */
+}
+
+/* 万流归宗粒子流画布 */
+.deliver-stream {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.deliver-stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 72px;
+  padding: 24px 16px;
+}
+
+/* ================= 白圆盘 ================= */
+.deliver-core {
+  position: relative;
+  width: 360px;
+  height: 360px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  /* 从中心向四周的整体透明度渐变（磨砂白，整体偏透） */
+  background: radial-gradient(circle at 50% 46%,
+    rgba(255,255,255,0.94) 0%,
+    rgba(255,255,255,0.86) 30%,
+    rgba(255,255,255,0.70) 55%,
+    rgba(255,255,255,0.45) 76%,
+    rgba(255,255,255,0.12) 90%,
+    rgba(255,255,255,0.0) 100%);
+  box-shadow:
+    0 24px 60px rgba(60,110,90,0.16),
+    0 8px 28px rgba(60,110,90,0.10);
+}
+
+/* icon01 纹样：以图标作 mask，用青瓷绿渐变填充（淡一号，更轻盈） */
+.deliver-core-texture {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 46%,
+    #A3DFCF 0%,
+    #72B5A4 48%,
+    #84A4C9 100%);
+  -webkit-mask-image: url("/static/images/icon01.svg");
+  mask-image: url("/static/images/icon01.svg");
+  -webkit-mask-size: cover;
+  mask-size: cover;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  opacity: 0.44;   /* 从 0.55 再淡 20% */
+  pointer-events: none;
+}
+/* 边缘柔化：把近圆盘边缘的纹样渐渐淡向背景 */
+.deliver-core-texture::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(255,255,255,0) 50%,
+    rgba(255,255,255,0.78) 82%,
+    rgba(255,255,255,0.98) 96%,
+    rgba(255,255,255,1) 100%);
+  pointer-events: none;
+}
+
+/* 圆盘描边环（中央内容底下） */
+.deliver-core-ring {
+  position: absolute;
+  inset: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(74,133,117,0.22);
+  pointer-events: none;
+}
+
+/* 边缘跑马光效：沿圆周奔跑的流光亮点（虚线圆环旋转） */
+.deliver-core-marquee {
+  position: absolute;
+  inset: 14px;
+  border-radius: 50%;
+  pointer-events: none;
+  overflow: hidden;
+}
+.deliver-core-marquee::before,
+.deliver-core-marquee::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  filter: drop-shadow(0 0 5px rgba(108,224,187,0.95)) drop-shadow(0 0 12px rgba(91,182,212,0.6));
+}
+/* 主脉冲：虚线描边沿圆周旋转（点状流光），亮绿→湖蓝 */
+.deliver-core-marquee::before {
+  border: 2px dashed transparent;
+  border-top-color: #6CE0BB;
+  border-right-color: #4A9ED4;
+  border-bottom-color: rgba(108,224,187,0.35);
+  border-left-color: rgba(74,158,212,0.25);
+  animation: deliverMarquee 2.8s linear infinite;
+}
+/* 反向对跑：细一圈的流光，营造华丽交错 */
+.deliver-core-marquee::after {
+  inset: -3px;
+  border: 1px dotted transparent;
+  border-top-color: rgba(74,158,212,0.95);
+  border-right-color: rgba(108,224,187,0.75);
+  border-bottom-color: rgba(108,224,187,0.2);
+  border-left-color: rgba(74,158,212,0.15);
+  animation: deliverMarquee 4.2s linear infinite reverse;
+}
+@keyframes deliverMarquee {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* 边缘扫光：沿圆环旋转的亮带 */
+.deliver-core-sweep {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  pointer-events: none;
+  overflow: hidden;
+}
+.deliver-core-sweep::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(91,182,212,0.0) 0deg,
+    rgba(91,182,212,0.0) 60deg,
+    rgba(91,182,212,0.55) 110deg,
+    rgba(108,224,187,0.75) 135deg,
+    rgba(74,133,117,0.35) 160deg,
+    rgba(91,182,212,0.0) 220deg
+  );
+  -webkit-mask-image: radial-gradient(circle, transparent 72%, #000 74%, #000 77%, transparent 79%);
+  mask-image: radial-gradient(circle, transparent 72%, #000 74%, #000 77%, transparent 79%);
+  animation: deliverSweep 6s linear infinite; /* 单圈 ≥5s */
+}
+@keyframes deliverSweep {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* 圆盘中央内容 */
+.deliver-core-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  text-align: center;
+  padding: 0 34px;
+}
+
+.deliver-dest-prompt {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--d-qing); /* 蓝色 */
+  line-height: 1.6;
+}
+.deliver-dest-name {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--chinese-qing);
+  letter-spacing: 1px;
+  line-height: 1.4;
+  max-width: 100%;
+  word-break: break-all;
+}
+
+button.deliver-pick-btn {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  height: 44px;          /* 从 46px 缩小约 5% */
+  padding: 0 32px;       /* 从 34px 缩小约 5% */
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  border-radius: 999px !important;
+  border: 1px solid var(--d-primary) !important;
+  background: var(--d-primary) !important; /* 实心青瓷绿 */
+  color: #fff !important;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  box-sizing: border-box !important;
+  outline: none;
+  margin: 0;
+  line-height: 1;
+  transition: all 0.28s ease;
+}
+button.deliver-pick-btn:hover {
+  background: var(--d-primary-deep) !important;
+  border-color: var(--d-primary-deep) !important;
+  color: #fff !important;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 26px rgba(60,110,90,0.28);
+}
+button.deliver-pick-btn:disabled,
+button.deliver-pick-btn.disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ================= 右侧横向放大进度条 ================= */
+.deliver-progress-col {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  min-width: 300px;
+}
+
+.deliver-bar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.deliver-bar-label {
+  font-size: 16px;
+  letter-spacing: 0.4em;
+  color: var(--d-muted);
+  white-space: nowrap;
+}
+
+.deliver-bar-num {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--d-primary);
+  min-width: 52px;
+  text-align: right;
+  font-family: inherit;
+}
+
+/* 轨道：分段的胶囊形小药丸（对齐 step1 竖向柱条，横置放大） */
+.deliver-bar-track {
+  display: flex;
+  gap: 5px;
+  height: 30px;
+  align-items: center;
+}
+
+.deliver-bar-track .dbar {
+  flex: 1 1 0;
+  min-width: 6px;
+  height: 100%;
+  border-radius: 9999px; /* 药丸 */
+  background: var(--d-gray-track);
+  transform: scaleY(0.55);
+  opacity: 0.35;
+  transition: background-color 0.45s ease, transform 0.45s ease, opacity 0.45s ease, box-shadow 0.45s ease;
+}
+/* 总进度：设计库亮绿（#6CE0BB 纯色，无渐变） */
+.deliver-bar-track .dbar.on-green {
+  background: #6CE0BB;
+  transform: scaleY(1);
+  opacity: 1;
+  box-shadow: 0 0 10px 1px rgba(108,224,187,0.5);
+}
+/* 当前文件：设计库亮蓝（#4A9ED4 纯色，无渐变） */
+.deliver-bar-track .dbar.on-blue {
+  background: #4A9ED4;
+  transform: scaleY(1);
+  opacity: 1;
+  box-shadow: 0 0 10px 1px rgba(74,158,212,0.5);
+}
+
+/* ================= 验证码确认弹窗（苹果式输码） ================= */
+.deliver-code-card {
+  width: 360px;
+}
+
+/* 上方：四位验证码展示 */
+.deliver-code-show {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 16px;
+  color: var(--chinese-green);
+  font-family: "Consolas", monospace;
+  text-align: center;
+  text-indent: 16px;
+  margin-bottom: 4px;
+}
+
+.deliver-code-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+/* 下方：四个独立输码小框 */
+.deliver-code-slots {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+
+.deliver-slot {
+  width: 58px;
+  height: 64px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(74,133,117,0.28);
+  background: rgba(255,255,255,0.7);
+  font-family: "Consolas", monospace;
+  font-size: 26px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--chinese-qing);
+  outline: none;
+  caret-color: var(--chinese-green);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+.deliver-slot:focus {
+  border-color: var(--chinese-green);
+  box-shadow: 0 0 0 3px rgba(74,133,117,0.14);
+  background: #fff;
+  transform: scale(1.05);
+}
+.deliver-slot.filled {
+  border-color: var(--chinese-green);
+  color: var(--chinese-green);
+  background: rgba(74,133,117,0.06);
+}
+
+/* 输错：弹窗抖动 */
+.deliver-code-slots.shake {
+  animation: deliverShake 0.42s ease;
+}
+@keyframes deliverShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-9px); }
+  40% { transform: translateX(9px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+
+.deliver-code-err {
+  min-height: 18px;
+  font-size: 12px;
+  color: var(--danger);
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.deliver-code-actions {
+  justify-content: center;
+  margin-top: 8px;
+}

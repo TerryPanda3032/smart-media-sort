@@ -1,0 +1,19 @@
+/* ===========================================================================
+   智能素材分类系统 — 样式入口
+   按模块拆分，由以下文件组成：
+     base.css          基础层（@font-face / :root / reset）
+     start.css         启动界面
+     main.css          素材库主页
+      project.css       项目详情页框架
+      panel-collect.css 收集步骤面板
+      panel-filter.css  过滤步骤面板
+   =========================================================================== */
+
+@import url("base.css");
+@import url("start.css");
+@import url("main.css");
+@import url("project.css");
+@import url("panel-collect.css");
+@import url("panel-filter.css");
+@import url("panel-ai-classify.css");
+@import url("panel-deliver.css");

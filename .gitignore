@@ -1,0 +1,29 @@
+# ---- 敏感配置（含 API 密钥）----
+config.json
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ---- 大文件 / 二进制 ----
+# ffmpeg 发行包（请自行安装）
+ffmpeg/
+# 字体文件（部分含版权限制，界面自动回退系统字体）
+static/fonts/
+
+# ---- 内部设计库 ----
+.design_library/
+
+# ---- 运行时产物 ----
+*.log
+.photo_classify_tmp/
+
+# ---- IDE / 系统 ----
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

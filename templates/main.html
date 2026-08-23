@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>素材库 — 智能素材分类系统</title>
+  <link rel="stylesheet" href="/static/css/style.css?v={{ start_ts }}" />
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+</head>
+<body class="main-body">
+
+  <div class="orange-mist" id="orangeMist"></div>
+
+  <button class="settings-trigger" id="settingsBtn" title="设置">
+    <svg viewBox="0 0 1024 1024" width="22" height="22" fill="currentColor">
+      <path d="M183.775 184.302l131.336 49.934 55.426-32L392.917 63.8h238.48l22.38 138.435 55.425 32L840.281 184.4l119.24 206.53-108.7 88.599v64l108.913 88.773-119.196 206.453-131.336-49.934-55.426 32-22.468 138.98H393.005l-22.468-138.98-55.426-32-131.593 50.032L64.366 632.476 173.49 543.53v-64L64.58 390.755l119.196-206.453z m28.184 79.185L147.247 375.57l90.244 73.558v124.801l-90.457 73.732L211.7 759.668l109.082-41.473 108.082 62.401 18.624 115.205h129.335l18.625-115.205 108.081-62.4 108.825 41.374 64.711-112.083-90.244-73.558V449.128l90.03-73.384-64.755-112.16-108.567 41.278-108.081-62.401-18.537-114.66h-129.51l-18.537 114.66-108.082 62.4-108.824-41.374zM512 712c-110.457 0-200-89.543-200-200s89.543-200 200-200 200 89.543 200 200-89.543 200-200 200z m0-64c75.11 0 136-60.89 136-136s-60.89-136-136-136-136 60.89-136 136 60.89 136 136 136z"/>
+    </svg>
+  </button>
+
+  <div class="main-content">
+    <div class="main-header">
+      <h1 class="main-title">素材库</h1>
+      <button class="btn-new" id="newProjectBtn">+ 新建</button>
+    </div>
+
+    <div class="content-panel">
+      <div class="table-wrap">
+        <table class="project-table">
+          <tbody id="projectBody"
+            hx-trigger="every 30s"
+            hx-get="/api/projects-table"
+            hx-swap="innerHTML"
+          ></tbody>
+        </table>
+        <div class="empty-state" id="emptyState">
+          <svg class="empty-icon" viewBox="0 0 80 80" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+            <path d="M20 55 L40 30 L55 45 L70 25" opacity="0.4"/>
+            <path d="M10 60 L30 35 L45 50 L60 30 L70 42" opacity="0.6"/>
+            <circle cx="58" cy="18" r="5" opacity="0.3"/>
+            <path d="M15 68 Q40 58 65 68" opacity="0.25"/>
+          </svg>
+          <span>暂无项目 · 请先新建或配置工作目录</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="settingsOverlay">
+    <div class="glass-card settings-card">
+      <h2>设置</h2>
+      <form id="settingsForm">
+        <label>工作目录</label>
+        <div class="input-row">
+          <input type="text" name="work_dir" placeholder="D:/素材" />
+          <button type="button" class="btn-ghost" id="browseBtn">浏览</button>
+        </div>
+        <label>API 地址</label>
+        <input type="text" name="api_url" placeholder="https://api-inference.modelscope.cn/v1/chat/completions" />
+        <label>API 密钥</label>
+        <input type="password" name="api_key" placeholder="sk-..." />
+        <label>推理模型</label>
+        <input type="text" name="model" placeholder="Qwen/Qwen3.5-397B-A17B" />
+        <label>快速模型</label>
+        <input type="text" name="fast_model" placeholder="Qwen/Qwen3.5-35B-A3B" />
+        <label>主力模型思考强度</label>
+        <select name="reasoning_effort">
+          <option value="low">低</option>
+          <option value="medium">中</option>
+          <option value="high">高</option>
+        </select>
+        <label class="checkbox-label">
+          <input type="checkbox" name="fast_model_no_cot" checked />
+          <span>关闭思维链（快速模型不进行逐步推理）</span>
+        </label>
+        <label>FFmpeg 路径</label>
+        <div class="input-row">
+          <input type="text" name="ffmpeg_path" placeholder="ffmpeg/bin/ffmpeg.exe" />
+          <button type="button" class="btn-ghost" id="browseFfmpegBtn">浏览</button>
+        </div>
+        <div id="testStatus" class="test-status"></div>
+        <div class="card-actions">
+          <button type="submit" class="btn-primary" id="saveBtn">保存并测试</button>
+          <button type="button" class="btn-ghost" id="settingsCancel">取消</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="overlay" id="newProjectOverlay">
+    <div class="glass-card dialog-card">
+      <h2>新建项目</h2>
+      <input type="text" id="newProjectName" placeholder="项目名称" />
+      <div class="card-actions">
+        <button class="btn-primary" id="newProjectConfirm">创建</button>
+        <button class="btn-ghost" id="newProjectCancel">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dropdown-menu" id="dropdownMenu">
+    <button class="dropdown-item" data-action="open">打开原位置</button>
+    <button class="dropdown-item dropdown-item-danger" data-action="delete">删除</button>
+  </div>
+
+  <!-- 确认弹窗 -->
+  <div class="collect-modal-overlay" id="confirmModal" style="display:none">
+    <div class="collect-modal-card confirm-card">
+      <div class="collect-modal-header" id="confirmTitle">确认</div>
+      <div class="collect-modal-body">
+        <p class="confirm-msg" id="confirmMessage"></p>
+      </div>
+      <div class="collect-modal-actions modal-actions-center">
+        <button type="button" class="collect-modal-btn collect-modal-btn-cancel" id="confirmCancelBtn">取消</button>
+        <button type="button" class="collect-modal-btn collect-modal-btn-confirm" id="confirmOkBtn">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app-events.js?v={{ start_ts }}"></script>
+  <script src="/static/js/main.js?v={{ start_ts }}"></script>
+</body>
+</html>

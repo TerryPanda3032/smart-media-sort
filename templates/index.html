@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智能素材分类系统</title>
+  <link rel="stylesheet" href="/static/css/style.css?v={{ start_ts }}" />
+</head>
+<body class="start-body">
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+  </div>
+  <div class="start-stage">
+    <div class="start-col" id="startCol">
+      <div class="title-wrap">
+        <img src="/static/images/yunwen1.svg" class="title-cloud-bg" aria-hidden="true" />
+        <h1 class="start-title">智能素材分类系统</h1>
+      </div>
+      <div class="start-divider"></div>
+
+      <svg class="hui-svg" aria-hidden="true" viewBox="0 0 400 12">
+        <defs>
+          <pattern id="huiPattern" x="0" y="0" width="32" height="12" patternUnits="userSpaceOnUse">
+            <path d="M4 2 h6 v6 h-3 v-3 h3" fill="none" stroke="currentColor" stroke-width="0.7" stroke-linecap="square"/>
+            <path d="M16 10 h-6 v-6 h3 v3 h-3" fill="none" stroke="currentColor" stroke-width="0.7" stroke-linecap="square"/>
+            <rect x="26" y="2" width="4" height="8" rx="0.5" fill="none" stroke="currentColor" stroke-width="0.7"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="12" fill="url(#huiPattern)" opacity="0.5"/>
+      </svg>
+
+      <div class="launch-btn" id="launchBtn"></div>
+
+      <p class="start-status" id="startStatus"></p>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js?v={{ start_ts }}"></script>
+</body>
+</html>

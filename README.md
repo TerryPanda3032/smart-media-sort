@@ -173,3 +173,39 @@ A：可以。只要服务兼容 OpenAI Chat Completions 协议，修改 `api_url
 本项目基于 [MIT License](./LICENSE) 开源。
 
 > 注意：仓库未包含 `static/fonts/` 目录下的字体文件（部分字体含版权限制），界面会自动回退到系统字体；`ffmpeg/` 目录亦未包含，请自行安装 ffmpeg。
+
+---
+
+## 从 Release 下载一键包（开箱即用）
+
+不想折腾环境？直接到 [Releases](https://github.com/TerryPanda3032/smart-media-sort/releases) 页面下载最新的一键包，解压后双击 `启动.bat` 即可运行，无需手动安装 Python 和依赖，开箱即用。
+
+> 一键包已内置 Python 运行时与全部依赖，适合不熟悉命令行配置的用户。
+
+## API URL 与 API Key 基础知识
+
+本系统的 AI 能力通过 **OpenAI 兼容的 Chat Completions 接口**调用大模型，只需配置 `api_url` 和 `api_key` 两项即可接入。
+
+### 什么是 API URL？
+
+API URL 是 AI 服务的接口地址，即「在哪里调用模型」。系统默认使用 ModelScope（魔搭）平台的接口：
+
+```
+https://api-inference.modelscope.cn/v1/chat/completions
+```
+
+如果你使用其他兼容 OpenAI 协议的服务（如阿里云百炼、DeepSeek、本地 Ollama 等），只需把 `api_url` 换成对应服务的接口地址即可，无需改动代码。
+
+### 什么是 API Key？
+
+API Key 是调用 AI 服务的**身份凭证**（相当于你的账号密码），用于验证身份与计费。以 ModelScope 为例：
+
+1. 注册并登录 [ModelScope 魔搭社区](https://www.modelscope.cn)；
+2. 进入「个人中心 → API-KEY 管理」页面；
+3. 点击「创建 API-KEY」，复制生成的密钥填入系统「设置」中的 `api_key` 字段。
+
+> ⚠️ API Key 等同于资金凭证，请妥善保管，切勿提交到代码仓库或分享给他人。
+
+### 推荐模型
+
+推荐使用 **Qwen3.8-27B**，并在「设置」中将「思考强度」选为**中思考模式（medium）**，在效果与速度之间取得最佳平衡，适合照片分类、视频标签等日常整理场景。

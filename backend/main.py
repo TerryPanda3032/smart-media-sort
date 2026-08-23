@@ -1165,16 +1165,48 @@ async def api_sse_events(name: str):
 # ===========================================================================
 
 def _open_browser():
+    """打开界面窗口。
+
+    依次探测系统里支持应用模式（无地址栏、独立窗口）的浏览器，优先 Edge/Chrome
+    的 `--app=` 模式以模拟独立应用外观；全部找不到时才退回系统默认浏览器。
+    不依赖某个固定浏览器程序，避免因机器上没有 Edge 而报错。
+    """
+    import os
+    import shutil
+    import subprocess
+
     url = "http://127.0.0.1:1145"
-    logger.info("正在打开浏览器: %s", url)
+    candidates = [
+        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            logger.info("以应用模式打开界面: %s", path)
+            subprocess.Popen([path, "--app=" + url])
+            return
+    for name in ("msedge", "chrome", "chromium"):
+        found = shutil.which(name)
+        if found:
+            logger.info("以应用模式打开界面: %s", found)
+            subprocess.Popen([found, "--app=" + url])
+            return
+    logger.info("未找到支持应用模式的浏览器，使用系统默认浏览器打开")
     webbrowser.open(url)
 
 
 if __name__ == "__main__":
     import threading
-    # 一键启动脚本（启动.bat）已用 Edge 应用模式打开界面，传入 --no-browser 避免重复弹出默认浏览器。
-    if "--no-browser" not in sys.argv:
-        threading.Timer(1.5, _open_browser).start()
-    # 关闭 reload：任务运行期间（step1 拷贝/批处理/交付）会让 watchfiles 检测到文件变化从而反复重启服务，
-    # 重启会杀掉在途线程并清空 SSE 事件队列，导致 step1 读条中断卡住。开发时改完代码手动重启即可。
-    uvicorn.run("main:app", host="127.0.0.1", port=1145, reload=False)
+    # 仅供启动脚本单独调用，用于在界面不重复打开的情况下拉起浏览器窗口。
+    if "--open-browser" in sys.argv:
+        _open_browser()
+    else:
+        # 一键启动脚本（启动.bat）用 --open-browser 打开界面，并传入 --no-browser
+        # 避免在这里重复弹出默认浏览器，造成开两个窗口。
+        if "--no-browser" not in sys.argv:
+            threading.Timer(1.5, _open_browser).start()
+        # 关闭 reload：任务运行期间（step1 拷贝/批处理/交付）会让 watchfiles 检测到文件变化从而反复重启服务，
+        # 重启会杀掉在途线程并清空 SSE 事件队列，导致 step1 读条中断卡住。开发时改完代码手动重启即可。
+        uvicorn.run("main:app", host="127.0.0.1", port=1145, reload=False)

@@ -81,7 +81,7 @@
 
 ```bash
 # 1. 克隆仓库
-git clone https://gitee.com/<你的用户名>/smart-media-sort.git
+git clone https://github.com/TerryPanda3032/smart-media-sort.git
 cd smart-media-sort
 
 # 2. 安装依赖

@@ -19,6 +19,7 @@
 """
 
 import logging
+import math
 import os
 import subprocess
 import tempfile
@@ -83,7 +84,7 @@ def _get_exif_datetime(filepath):
 def _add_watermark_photo(img, author):
     draw = ImageDraw.Draw(img)
     w, h = img.size
-    font_size = max(int(h * 0.04), 20)
+    font_size = max(int(math.hypot(w, h) * 0.015), 20)
     try:
         font = ImageFont.truetype(FONT_PATH, font_size)
     except Exception:
@@ -381,8 +382,9 @@ def process_video(filepath, folder_dir, config, gpu, ffmpeg_bin):
         has_drawtext = True
         safe_font = FONT_PATH.replace("\\", "/").replace(":", "\\:")
         safe_author = author.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
-        video_height = _get_video_height(filepath, ffmpeg_bin)
-        font_size = max(20, int(video_height * 0.05))
+        vw, vh, _codec = _probe_video(filepath, ffmpeg_bin)
+        video_height = vh or 0
+        font_size = max(20, int(math.hypot(vw or 0, video_height or 0) * 0.015))
         video_padding = max(40, int(video_height * 0.03))
         filters.append(
             f"drawtext=text='{safe_author}':"

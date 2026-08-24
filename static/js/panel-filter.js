@@ -532,7 +532,7 @@
       var pname = proj ? proj.nameEncoded : "";
 
       function openViewer(type) {
-        var labels = {2: "过曝欠曝", 3: "模糊不清", 4: "内容无物"};
+        var labels = {2: "过曝欠曝", 3: "内容无物", 4: "文件损坏"};
         var label = labels[type] || "废片";
         fetch("/api/project/" + pname + "/ai-filter-photos?type=" + type)
           .then(function (r) { return r.json(); })

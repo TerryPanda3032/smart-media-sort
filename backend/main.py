@@ -637,10 +637,11 @@ async def api_deliver_start(request: Request, name: str):
     """交付：将 图片素材/视频素材 整体拷贝到用户指定的输出目录并校验。"""
     body = await request.json()
     dest_dir = body.get("destDir", "").strip()
+    keep_media = bool(body.get("keepMedia", False))
     if not dest_dir or not os.path.isdir(dest_dir):
         return {"status": "error", "message": "目标输出目录无效，请先选择"}
     project_dir, _ = resolve_project(name)
-    deliver_service.start_deliver(name, project_dir, dest_dir)
+    deliver_service.start_deliver(name, project_dir, dest_dir, keep_media)
     return {"status": "ok", "message": "交付已启动"}
 
 
@@ -760,7 +761,7 @@ def _save_classify_result(project_dir: str, data: list) -> bool:
 
 
 def _classify_summary(data: list) -> dict:
-    """统计各类废片数量 (type 2/3/4)。"""
+    """统计各类废片数量 (type 2 过曝欠曝 / type 3 内容无物 / type 4 文件损坏)。"""
     summary = {"type2": 0, "type3": 0, "type4": 0}
     for item in data:
         t = item.get("type")

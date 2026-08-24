@@ -765,6 +765,14 @@ def _call_model_once(api_url: str, api_key: str, model: str,
             usage = result.get("usage")
             choices = result.get("choices")
             if not isinstance(choices, list) or not choices:
+                # choices 为空 + usage 全 0 + created 全 0 → 模型在推理前就被服务端拒绝，
+                # 常见于不支持图片输入 / 消息格式不被接受（对分类这类必发图的任务尤其要留意）。
+                u = result.get("usage") or {}
+                if not u.get("total_tokens") and not result.get("created"):
+                    logger.warning(
+                        "服务端在推理前拒绝了请求（choices 为空、usage 全 0）：模型 %s 可能不接受本次消息，"
+                        "请确认是支持图片输入的视觉模型。原始返回: %s",
+                        model, str(result)[:400])
                 raise ValueError(f"choices 缺失或为空: {str(result)[:300]}")
             msg = choices[0].get("message")
             if not isinstance(msg, dict):
@@ -788,7 +796,13 @@ def _call_model_resilient(api_url: str, api_key: str, model: str, messages: list
     acc = {"input_tokens": 0, "output_tokens": 0}
 
     def _try() -> tuple[str | None, dict | None]:
-        content, usage = _call_model_once(api_url, api_key, model, messages)
+        try:
+            content, usage = _call_model_once(api_url, api_key, model, messages)
+        except Exception as e:
+            # 单次调用异常（含服务端返回空 choices 被拒等）视为可重试失败，
+            # 交给外层 1s/3s/5s 退避 + 用户确认循环，而不是直接崩掉整批任务。
+            logger.warning("模型调用异常（可重试）：%s", e)
+            return None, acc
         if content is not None and usage:
             try:
                 acc["input_tokens"] += int(usage.get("prompt_tokens") or 0)

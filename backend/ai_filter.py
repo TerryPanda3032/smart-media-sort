@@ -25,21 +25,22 @@ BATCH_SIZE = 40
 PROMPT = (
     "你是一位严格的图片质量评审专家。请按以下优先级逐张判断，\n"
     "每张图片只归入优先级最高的一个类别（一旦命中即停止判断后续类别）：\n\n"
-    "优先级 1 → type 4（内容无物 / 无保留价值）\n"
-    "判断：只要这张照片拍得不好、没什么价值、不值得保留，就直接归入此类。\n"
-    "包括但不限于：画面中无可辨认的有效拍摄对象（纯色墙面/地面/天空、手指遮挡镜头、\n"
-    "镜头盖、完全失焦到无形状、全黑/全白）、主体严重模糊糊成一片、构图完全崩坏\n"
-    "（只拍到半根手指/一只脚尖/地面虚影）、曝光严重失误导致画面不可用、随手误拍的\n"
-    "空镜头/桌面/衣角/杂物特写等没有任何意义、没有可看性、不值得交付给用户的照片。\n"
-    "原则：你判断这张照片没拍好、没价值，就一律归入 type 4（内容无物）。\n\n"
-    "优先级 2 → type 3（模糊不清）\n"
-    "判断：画面有可辨认对象，但主体明显模糊/失焦/抖动虚影（尚不至于糊成一片、整体报废）。\n"
-    "注意：即使同时存在曝光问题，只要主体模糊，就归为此类，不再判断曝光。\n\n"
-    "优先级 3 → type 2（欠曝过曝）\n"
-    "判断：画面主体清晰，但曝光明显不合理。\n"
-    "包括但不限于：大面积死白（>15%区域）、大面积死黑（>30%区域）。\n\n"
+    "优先级 1 → type 4（文件损坏 / 假照片）\n"
+    "判断：文件看似是照片，但实际不是可用真实图像——例如损坏无法解码、内容为空、纯色无像素、\n"
+    "或被改名为图片的文本/占位文件。\n\n"
+    "优先级 2 → type 3（内容无物，含模糊低质，不值得保留）\n"
+    "判断标准从严——只要画面没有值得保留的内容，就归入此类。包括但不限于：\n"
+    "  · 无可辨认有效拍摄对象（纯色墙面/地面/天空、手指遮挡镜头、镜头盖、全黑/全白、\n"
+    "    完全失焦到无形状）；\n"
+    "  · 主体明显模糊/失焦/抖动虚影（糊成一片或整体报废）；\n"
+    "  · 分辨率过低、噪点过多、不够清晰；\n"
+    "  · 构图歪七扭八、杂乱无章、随手误拍的空镜头/桌面/衣角/杂物特写；\n"
+    "  · 整体没有审美价值、不值得交付给用户的照片。\n"
+    "原则：宁可从严——只要判断这张没拍好、没价值，就一律归入 type 3。\n\n"
+    "优先级 3 → type 2（过曝欠曝）\n"
+    "判断：画面主体清晰、有内容，但曝光明显不合理，导致画面不可用（大面积死白或死黑）。\n\n"
     "优先级 4 → type 1（通过）\n"
-    "判断：以上三类都不符合，照片清晰、有价值、值得保留。\n\n"
+    "判断：以上都不符合，照片清晰、曝光正常、有价值、值得保留。\n\n"
     "请严格按以下 JSON 格式输出，不添加任何多余说明：\n\n"
     '{"results": [\n'
     '  {"index": 0, "type": 1},\n'
@@ -191,6 +192,18 @@ def _extract_json(text: str) -> dict | None:
         return None
 
 
+def _write_ai_result(project_dir: str, results_path: str, all_results: list,
+                     fp: str, img_type: int) -> None:
+    """把一条筛检结果 append 到 all_results 并增量落盘。"""
+    rel_path = os.path.relpath(fp, project_dir)
+    all_results.append({"path": rel_path, "type": img_type})
+    try:
+        with open(results_path, "w", encoding="utf-8") as f:
+            json.dump(all_results, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.warning("写入结果文件失败: %s", e)
+
+
 def _run_ai_filter(project_dir: str, project_key: str):
     try:
         if not os.path.isdir(project_dir):
@@ -256,67 +269,57 @@ def _run_ai_filter(project_dir: str, project_key: str):
                         base64.b64encode(img_bytes).decode("utf-8")
                     )
                     valid_indices.append(i)
+            valid_set = set(valid_indices)
+
+            # 读图/压缩失败的空壳、损坏文件 → 无条件判「文件损坏」（type 4），
+            # 与 AI 是否成功无关（无固定含义，就是不可用文件）。
+            for i, fp in enumerate(batch_photos):
+                if i in valid_set:
+                    continue
+                _write_ai_result(project_dir, results_path, all_results, fp, 4)
+                done_count += 1
+                _push_progress(project_key, status="running", total=total,
+                               done=done_count,
+                               percent=int(done_count / total * 100))
+                logger.warning("读图失败，判定为文件损坏: %s", fp)
 
             if not compressed_list:
-                for _ in batch_photos:
-                    done_count += 1
-                    pct = int(done_count / total * 100)
-                    _push_progress(
-                        project_key,
-                        status="running",
-                        total=total,
-                        done=done_count,
-                        percent=pct,
-                    )
-                    time.sleep(0.05)
                 continue
 
             result = _call_ai_api(api_url, api_key, model, PROMPT, compressed_list)
 
             if result is None:
-                logger.error("批次 %d AI 调用失败，跳过", batch_start // BATCH_SIZE + 1)
-                for _ in batch_photos:
+                logger.error("批次 %d AI 调用失败，压缩成功的照片暂未判定",
+                             batch_start // BATCH_SIZE + 1)
+                # 压缩成功但 AI 失败 → 不落结果，避免误删正常照片；仅推进进度
+                for _i in valid_indices:
                     done_count += 1
-                    pct = int(done_count / total * 100)
-                    _push_progress(
-                        project_key,
-                        status="running",
-                        total=total,
-                        done=done_count,
-                        percent=pct,
-                    )
+                    _push_progress(project_key, status="running", total=total,
+                                   done=done_count,
+                                   percent=int(done_count / total * 100))
                     time.sleep(0.05)
                 continue
 
             raw_results = result.get("results", []) if isinstance(result, dict) else []
-            type_by_index: dict[int, int] = {}
+            # AI 的 index 是"成功压缩并发送的图片"的发送顺序（0 起），
+            # 经 valid_indices 映射回 batch_photos 的原始位置，避免编号错位。
+            type_by_valid: dict[int, int] = {}
             for item in raw_results:
-                idx = item.get("index")
+                ai_idx = item.get("index")
                 t = item.get("type")
-                if isinstance(idx, int) and t in (1, 2, 3, 4):
-                    type_by_index[idx] = t
+                if not (isinstance(ai_idx, int) and t in (1, 2, 3, 4)):
+                    continue
+                if 0 <= ai_idx < len(valid_indices):
+                    type_by_valid[valid_indices[ai_idx]] = t
 
-            for pos_in_batch, fp in enumerate(batch_photos):
-                rel_path = os.path.relpath(fp, project_dir)
-                img_type = type_by_index.get(pos_in_batch, 1)
-
-                all_results.append({"path": rel_path, "type": img_type})
+            for i in valid_indices:
+                fp = batch_photos[i]
+                img_type = type_by_valid.get(i, 1)
+                _write_ai_result(project_dir, results_path, all_results, fp, img_type)
                 done_count += 1
-
-                try:
-                    with open(results_path, "w", encoding="utf-8") as f:
-                        json.dump(all_results, f, ensure_ascii=False, indent=2)
-                except Exception as e:
-                    logger.warning("写入结果文件失败: %s", e)
-
-                pct = int(done_count / total * 100)
-                _push_progress(
-                    project_key,
-                    status="running",
-                    total=total,
-                    done=done_count,
-                    percent=pct,
-                )
+                _push_progress(project_key, status="running", total=total,
+                               done=done_count,
+                               percent=int(done_count / total * 100))
                 time.sleep(0.05)
 
         _push_progress(

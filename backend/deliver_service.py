@@ -52,11 +52,14 @@ def reset(name: str):
     _progress.remove(name)
 
 
-def start_deliver(name: str, project_dir: str, dest_dir: str):
-    """启动后台交付线程：拷贝 + 校验。"""
+def start_deliver(name: str, project_dir: str, dest_dir: str, keep_media: bool = False):
+    """启动后台交付线程：拷贝 + 校验。
+
+    keep_media=True 表示交付校验完成后不删除源素材（保留媒体）。
+    """
     t = threading.Thread(
         target=_do_deliver,
-        args=(name, project_dir, dest_dir),
+        args=(name, project_dir, dest_dir, keep_media),
         daemon=True,
     )
     t.start()
@@ -82,7 +85,7 @@ def _collect_source_files(project_dir: str) -> list[tuple[str, str]]:
     return files
 
 
-def _do_deliver(name: str, project_dir: str, dest_dir: str):
+def _do_deliver(name: str, project_dir: str, dest_dir: str, keep_media: bool = False):
     try:
         all_files = _collect_source_files(project_dir)
         total = len(all_files)
@@ -180,14 +183,18 @@ def _do_deliver(name: str, project_dir: str, dest_dir: str):
         identical, reason = _verify_copy(all_files, dest_root)
 
         if identical:
-            # 校验一致 → 清理项目文件夹内的全部素材，交付即清空
-            _progress.update(name, status="cleanup", current_pct=1.0,
-                             message="校验一致，正在清空原始素材…")
-            _notify_sse(name)
-            cleaned, clean_err = _clear_project(project_dir)
-            final_status = "done"
-            final_msg = ("交付完成，校验一致，原始素材已清空" if cleaned
-                         else f"交付完成，校验一致，但素材清理失败：{clean_err}")
+            if keep_media:
+                # 保留媒体：核验完成后不删除源素材
+                final_status = "done"
+                final_msg = "交付完成，校验一致，已保留源文件"
+            else:
+                _progress.update(name, status="cleanup", current_pct=1.0,
+                                 message="校验一致，正在清空原始素材…")
+                _notify_sse(name)
+                cleaned, clean_err = _clear_project(project_dir)
+                final_status = "done"
+                final_msg = ("交付完成，校验一致，原始素材已清空" if cleaned
+                             else f"交付完成，校验一致，但素材清理失败：{clean_err}")
         else:
             final_status = "mismatch"
             final_msg = f"校验不一致：{reason}"

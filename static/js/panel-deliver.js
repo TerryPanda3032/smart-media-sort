@@ -201,7 +201,6 @@
     var prompt = document.getElementById("deliverDestPrompt");
     var nameEl = document.getElementById("deliverDestName");
     if (!pickBtn) return;
-
     pickBtn.addEventListener("click", function () {
       if (_delivering) return;
       fetch("/api/pick-folder", { method: "POST" })
@@ -212,6 +211,8 @@
           prompt.style.display = "none";
           nameEl.textContent = data.path;
           nameEl.style.display = "";
+          var keepWrap = document.getElementById("deliverKeepMediaWrap");
+          if (keepWrap) keepWrap.style.display = "";
           setNextEnabled(_destDir !== "" && !_delivering);
         })
         .catch(function () {});
@@ -378,7 +379,7 @@
     fetch("/api/project/" + proj.nameEncoded + "/deliver-start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ destDir: _destDir }),
+      body: JSON.stringify({ destDir: _destDir, keepMedia: !!(document.getElementById("deliverKeepMedia") || {}).checked }),
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -448,6 +449,10 @@
     PC.state.panelBusy = false;
     _delivering = false;
     _destDir = "";
+    var keepWrap = document.getElementById("deliverKeepMediaWrap");
+    var keepCb = document.getElementById("deliverKeepMedia");
+    if (keepWrap) keepWrap.style.display = "none";
+    if (keepCb) keepCb.checked = false;
 
     buildBar(document.getElementById("deliverBarTotal"));
     buildBar(document.getElementById("deliverBarCurrent"));

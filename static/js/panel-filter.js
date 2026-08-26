@@ -17,6 +17,7 @@
   var _aiAnimTimer = null;
   var _rescuedPaths = {};
   var _aiDone = false;
+  var _skipAsked = false;   // 同一会话内只询问一次是否跳过 AI 筛检
 
   function initFilterPanel() {
     PC.state.panelBusy = false;
@@ -42,6 +43,7 @@
       if (modal) modal.style.display = "";
     });
     initFilterConfirm();
+    maybeAskSkip();
     function initFilterConfirm() {
       var modal = document.getElementById("filterConfirmModal");
       if (!modal) return;
@@ -756,6 +758,44 @@
       }
     };
     window.addEventListener("resize", PC.state.filterResizeHandler);
+  }
+
+  // 进入 step2：询问是否跳过 AI 筛检
+  function maybeAskSkip() {
+    if (_skipAsked) return;
+    var pfEl = document.querySelector(".panel-filter");
+    if (pfEl && pfEl.getAttribute("data-step2-locked") === "true") return;  // 已处理过不再询问
+    _skipAsked = true;
+    var modal = document.getElementById("skipFilterModal");
+    if (!modal) return;
+    modal.style.display = "";
+    var yes = document.getElementById("skipFilterYes");
+    var no = document.getElementById("skipFilterNo");
+    var close = document.getElementById("skipFilterClose");
+    if (yes) {
+      yes.onclick = function () {
+        modal.style.display = "none";
+        var pname = proj ? proj.nameEncoded : "";
+        if (!pname) return;
+        PC.showNotice("info", "正在跳过筛检…");
+        fetch("/api/project/" + pname + "/ai-filter-skip", { method: "POST" })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (d.status === "ok") {
+              PC.showNotice("success", "已跳过筛检，进入 AI 分类");
+              PC.loadPanel(3);
+            } else {
+              PC.showNotice("error", d.message || "跳过失败");
+            }
+          })
+          .catch(function () { PC.showNotice("error", "网络错误，请重试"); });
+      };
+    }
+    if (no) no.onclick = function () { modal.style.display = "none"; };
+    if (close) close.onclick = function () { modal.style.display = "none"; };
+    modal.addEventListener("click", function (e) {
+      if (e.target === modal) modal.style.display = "none";
+    });
   }
 
   // 注册到公共分发器

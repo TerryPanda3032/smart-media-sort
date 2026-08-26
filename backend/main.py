@@ -519,6 +519,12 @@ async def project_panel(request: Request, name: str, step: int):
             extra["subfolders"] = subfolders
         except Exception:
             extra["subfolders"] = []
+    elif step == 2:
+        try:
+            project_dir, id_data = resolve_project(name)
+            extra["step2_locked"] = bool(id_data.get("step2_locked", False))
+        except Exception:
+            extra["step2_locked"] = False
     return templates.TemplateResponse(request, template_name, {
         "project_name": name,
         "current_step": step,
@@ -939,6 +945,42 @@ async def api_ai_filter_confirm(name: str):
     return {
         "status": "ok",
         "moved": moved,
+        "step": 3,
+        "photosMoved": extract_result.get("photos_moved", 0),
+        "videosMoved": extract_result.get("videos_moved", 0),
+        "extractStatus": extract_result.get("status", "error"),
+    }
+
+
+@app.post("/api/project/{name:path}/ai-filter-skip")
+async def api_ai_filter_skip(name: str):
+    """跳过 AI 废片筛检：不产出 分类结果.json，直接把废片处理略过并进入 step3。
+
+    适用：用户确认这批素材无需废片筛检（如全部为有效照片），直接从 step2 进入 step3。
+    动作：设 step=3、锁 step2、执行照片/视频素材提取（与 ai-filter-confirm 一致），
+    其余废片不移动、不额外处理。
+    """
+    project_dir, id_data = resolve_project(name)
+
+    id_data["step"] = 3
+    id_data["step2_locked"] = True
+    write_project_idjson(project_dir, id_data)
+    logger.info("跳过 AI 筛检: %s 已直接进入 step3", name)
+
+    # step3 前置处理: 构建照片索引并提取视频/照片到 视频素材/图片素材
+    extract_result = {"status": "ok", "videos_moved": 0, "photos_moved": 0, "photos_total": 0}
+    try:
+        extract_result = photo_index.extract_to_material_dirs(project_dir, id_data)
+        logger.info("step3 素材提取完成: 视频 %d 个, 照片 %d 张",
+                    extract_result.get("videos_moved", 0),
+                    extract_result.get("photos_moved", 0))
+    except Exception as e:
+        logger.exception("step3 素材提取失败: %s", e)
+        extract_result = {"status": "error", "videos_moved": 0, "photos_moved": 0, "photos_total": 0}
+
+    return {
+        "status": "ok",
+        "moved": 0,
         "step": 3,
         "photosMoved": extract_result.get("photos_moved", 0),
         "videosMoved": extract_result.get("videos_moved", 0),

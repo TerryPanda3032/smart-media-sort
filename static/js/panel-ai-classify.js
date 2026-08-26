@@ -1358,8 +1358,15 @@
     var sw = document.getElementById("acModeSwitch");
     var btnNext = document.getElementById("btnNext");
     if (!sw || !btnNext || !btnNext.parentNode) return;
-    if (sw.parentNode !== btnNext.parentNode) {
-      btnNext.parentNode.insertBefore(sw, btnNext);
+    var footer = btnNext.parentNode;
+    // 先清掉底层栏可能残留的旧滑块（反复进入 step3 / 跨次残留会累积成两个），
+    // 只保留本次注入的这一个，再移动到位。
+    var leftovers = footer.querySelectorAll(".ac-mode-switch");
+    for (var i = 0; i < leftovers.length; i++) {
+      if (leftovers[i] !== sw) leftovers[i].parentNode.removeChild(leftovers[i]);
+    }
+    if (sw.parentNode !== footer) {
+      footer.insertBefore(sw, btnNext);
     }
     moveAcThumb();
   }

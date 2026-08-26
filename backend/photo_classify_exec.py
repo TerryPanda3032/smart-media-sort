@@ -203,7 +203,11 @@ def _photos_in_folder(project_dir: str, folder_rel: str) -> list[dict]:
             "time": e.get("time"),
             "author": e.get("author"),
         })
-    out.sort(key=lambda x: x["path"])
+    # 按拍摄时间升序注入（time 形如 "2025-10-26 19:26"，字符串序即时间序），
+    # 让同一连续时空的照片相邻，AI 可据此识别断点；缺时间的排最后，用 path 兜底稳定排序。
+    out.sort(key=lambda x: (1 if not (x.get("time") or "").strip() else 0,
+                            x.get("time") or "",
+                            x["path"]))
     return out
 
 
@@ -515,9 +519,23 @@ def build_system_prompt(plan: dict, batch_size: int,
     return (
         "你是图片分类专家。把本批照片按【分类方案】分组。\n"
         f"{location}\n\n"
+        "【重要：大环境】本批照片已按拍摄时间升序排列，编号顺序即时间顺序，相邻同属一段时空，"
+        "时间或画面明显跳变即断点。本项目照片总量远大于本批，本批只是时间轴上的一个片段，"
+        "前后还有更多批次；计划要求的某类照片可能分散在多个批次才集齐——本批没出现的类别不要硬造。\n"
+        "\n"
+        "【分类原则：精准、实事求是、不凑数】\n"
+        "- 只按本批照片的真实内容分组：能明确归入某类的就归，本批真实有几个分组就分几个，不增不减。\n"
+        "- 严禁为了凑满方案的类别数量或用户提到的数量，把一组拆成多个无依据的类别；也不要整批硬塞成很多类。\n"
+        "- 允许整批只分出 1 个类别（哪怕整批都属于同一类）。分清比凑够更重要。\n"
+        "- 严禁随意新建「方案之外」的类别；需要新类时，必须确实是本批画面中真实、独立、且与已有类别有明显差异的分组。\n"
+        "- 类别的异同已在【当前步骤内容】里写清（易混淆点与关键差异）：相同之处要避免混淆，不同之处作为分类依据。\n"
+        f"\n{scope_line}"
+        f"{composite_line}\n"
+        "\n"
         "【输出格式】严格按下面的 JSON 输出本批全部照片的分组，其余不要任何文字、"
         "不要 markdown 代码围栏（```）：\n"
         "{\n"
+        '  "note": "一句话说明本批分类的依据与理由（按什么判了哪些范围/断点/做了哪些取舍）",\n'
         '  "groups": [\n'
         '    {"category": "类别名1", "photos": [{"index": 1}, {"index": 2}]},\n'
         '    {"category": "类别名2", "photos": [{"index": 3, "new_name": "新文件名"}]}\n'
@@ -525,17 +543,16 @@ def build_system_prompt(plan: dict, batch_size: int,
         "}\n"
         "\n"
         "字段说明：\n"
+        '- "note"：简短（一两句）说明本批分类依据与理由。\n'
         '- "groups"：按类别分的数组，每个元素是一个类别。\n'
         '- "category"：类别名，必须是当前层应有的大类或已有类别，不得含「/」。\n'
         '- "photos"：该类别下的照片编号数组，每张照片一项；\n'
         '  不重命名为 {"index": 编号}；重命名为 {"index": 编号, "new_name": "新文件名"}。\n'
         "\n"
-        "规则:\n"
-        f"\n{scope_line}"
-        f"{composite_line}"
-        f"- 全部编号(1~{batch_size})必须出现且各一次；每个编号只能出现在一个类别。\n"
-        "- 属于已有类别则复用其名；否则按画面内容自行命名。\n"
-        '- 需要重命名时写 {"index": 编号, "new_name": "新文件名"}；new_name 一定不要写扩展名'
+        "硬性要求：\n"
+        f"- 全部编号(1~{batch_size})必须出现且各一次；每个编号只能出现在一个类别（本批照片必须全部分类，不许留空）。\n"
+        "- 属于已有类别则复用其名；确实没有合适类别、且本批确有独立分组时，才新建有明确依据的类别。\n"
+        '- 需要重命名时写 {"index": 编号, "new_name": "新文件名"}；new_name 不要写扩展名'
         "（例如不要写 xxx.jpg），程序会自动补上原图片扩展名（如 .jpg / .jpeg），"
         "确保结果仍是图片文件；不需要重命名的照片写成 {\"index\": 编号}。\n"
         "- 分类与重命名一次完成：方案要求重命名的照片（如特写编号），归入类别时就在 new_name 里写好新名。\n"
@@ -609,18 +626,13 @@ def _parse_json_classification(text: str, batch_size: int) -> dict | None:
     """尝试按标准 JSON 分组解析；非 JSON 或结构不符返回 None。
 
     预期结构（与提示词一致）：
-      {"groups": [{"category": "...", "photos": [{"index": N},
+      {"note": "...", "groups": [{"category": "...", "photos": [{"index": N},
                     {"index": N, "new_name": "..."}]}]}
-    返回与 parse_classification 相同的统一结构。
+    返回与 parse_classification 相同的统一结构（含可选的 note）。
+    复用 _extract_json 的引号修复，避免 note 等长文本里的未转义引号破坏整批 JSON。
     """
-    t = text.strip()
-    if t.startswith("```"):
-        t = "\n".join(ln for ln in t.splitlines() if not ln.strip().startswith("```")).strip()
-    if not t.startswith("{"):
-        return None
-    try:
-        data = json.loads(t)
-    except (json.JSONDecodeError, ValueError):
+    data = _extract_json(text)
+    if not isinstance(data, dict):
         return None
     raw = data.get("groups") if isinstance(data, dict) else None
     if not isinstance(raw, list):
@@ -667,7 +679,8 @@ def _parse_json_classification(text: str, batch_size: int) -> dict | None:
                 g_items.append((idx, new_name))
                 break
     missing = [i for i in range(1, batch_size + 1) if i not in seen]
-    return {"groups": groups, "missing": missing, "duplicated": duplicated}
+    note = str(data.get("note") or "").strip() or None
+    return {"groups": groups, "missing": missing, "duplicated": duplicated, "note": note}
 
 
 def parse_classification(text: str, batch_size: int) -> dict:
@@ -729,7 +742,7 @@ def parse_classification(text: str, batch_size: int) -> dict:
                 g_items.append((idx, new_name))
                 break
     missing = [i for i in range(1, batch_size + 1) if i not in seen]
-    return {"groups": groups, "missing": missing, "duplicated": duplicated}
+    return {"groups": groups, "missing": missing, "duplicated": duplicated, "note": None}
 
 
 # ===========================================================================
@@ -1070,6 +1083,8 @@ def _process_batch_loop(project_dir: str, project_key: str, plan: dict,
                 bc.add_tokens(usage)
                 _log(project_key, batch_no, "assistant", content)
                 r = parse_classification(content, len(photos))
+                if r.get("note"):
+                    _log(project_key, batch_no, "info", f"[AI 依据] {r['note']}")
                 if r["groups"] and not r["missing"]:
                     parsed = r
                     break
@@ -1309,6 +1324,8 @@ def _accept_and_next(project_dir: str, project_key: str, remaining: list,
 
     prompt = (
         "你是照片分类任务的调度员。请阅读【剩余计划】【当前目录结构】，完成三件事：\n"
+        "说明：分类时照片按拍摄时间升序注入，同一连续时空相邻。"
+        "当某 step 要求「按记录内容/场景归类」时，可依据时间连续性判定一组照片是否属于同一连续时空。\n"
         "1. 判定【剩余计划】里哪些 step 已完成（completed）——只能顺序判完成："
         "只能把【剩余计划】【最前面、连续的】step 判为完成。例如剩余为 1、2、3 时，"
         "只能判 1（或 1、2）已完成，绝不能只判 3 完成（1、2 还没做）。"

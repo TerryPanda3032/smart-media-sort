@@ -1,4 +1,5 @@
-<div class="panel-filter">
+<div class="panel-filter"
+  {% if step2_locked is defined %}data-step2-locked="{{ 'true' if step2_locked else 'false' }}"{% endif %}>
   <div class="pf-main" id="pfMain">
     <div class="pf-ring-section">
       <div class="pattern-layer"></div>
@@ -51,6 +52,29 @@
   </div>
 </div>
  
+<!-- 进入 step2 的跳过询问弹窗 -->
+<div class="collect-modal-overlay" id="skipFilterModal" style="display:none">
+  <div class="collect-modal-card">
+    <div class="collect-modal-header">进入 AI 分类</div>
+    <div class="collect-modal-body">
+      <p style="font-size:14px;text-align:center;letter-spacing:1px;line-height:1.8;margin:0">
+        <span style="font-weight:600">本步是「AI 废片筛检」，用于剔除过曝欠曝 / 内容无物 / 损坏的照片。</span><br>
+        <span style="color:var(--text-secondary)">是否需要跳过它，直接进入 AI 分类？</span>
+      </p>
+    </div>
+    <div class="collect-modal-actions" style="gap:16px">
+      <button type="button" id="skipFilterYes"
+        class="collect-modal-btn"
+        style="flex:1;background:var(--chinese-green);border-color:var(--chinese-green);color:#fff;font-weight:700;cursor:pointer">
+        跳过筛检
+      </button>
+      <button type="button" class="collect-modal-btn collect-modal-btn-cancel" id="skipFilterNo" style="flex:1">
+        继续筛检
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- 筛检确认弹窗 -->
 <div class="collect-modal-overlay" id="filterConfirmModal" style="display:none">
   <div class="collect-modal-card">

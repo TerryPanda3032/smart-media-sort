@@ -53,16 +53,17 @@ call :echo [env] Python ready: !PY!
 "%PY%" -m pip --version
 
 rem ============================================================
-rem  Step 2: set Tsinghua pip mirror (non-fatal)
+rem  Step 2: set Aliyun pip mirror (non-fatal)
 rem ============================================================
-"%PY%" -m pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple >nul 2>nul
-"%PY%" -m pip config set global.trusted-host pypi.tuna.tsinghua.edu.cn >nul 2>nul
+"%PY%" -m pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ >nul 2>nul
+"%PY%" -m pip config set global.trusted-host mirrors.aliyun.com >nul 2>nul
 
 rem ============================================================
 rem  Step 3: install required dependencies
+rem  (requirements.txt 已含 fastapi / numpy / opencv-python-headless / onnxruntime 等)
 rem ============================================================
 call :echo [env] Installing dependencies ...
-"%PY%" -m pip install --disable-pip-version-check -r "%~dp0requirements.txt" -i https://pypi.tuna.tsinghua.edu.cn/simple
+"%PY%" -m pip install --disable-pip-version-check -r "%~dp0requirements.txt" -i https://mirrors.aliyun.com/pypi/simple/
 if errorlevel 1 goto :deps_failed
 
 rem ============================================================

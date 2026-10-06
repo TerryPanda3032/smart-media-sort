@@ -1,0 +1,3 @@
+# Windows 批处理必须以 CRLF 换行，否则 cmd.exe 解析错位（LF 结尾会导致整段命令串位报错）
+*.bat text eol=crlf
+*.cmd text eol=crlf

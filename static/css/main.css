@@ -301,6 +301,30 @@
   transition: border-color 0.2s ease;
 }
 .glass-card input:focus { border-color: var(--chinese-green); }
+
+/* 设置卡片：限高 + 内容纵向滚动，避免被拉长后按钮不可见 */
+.settings-card {
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+}
+.settings-card #settingsForm {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+  padding-right: 6px;
+  scrollbar-width: thin;
+}
+.settings-card #settingsForm::-webkit-scrollbar {
+  width: 6px;
+}
+.settings-card #settingsForm::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 3px;
+}
+.settings-card .card-actions {
+  margin-top: 20px;
+}
  
 .input-row { display: flex; gap: 8px; align-items: stretch; }
 .input-row input { flex: 1; min-width: 0; }
@@ -319,6 +343,40 @@
   width: auto;
   margin: 0;
   accent-color: var(--chinese-green);
+}
+
+.slider-field {
+  margin-top: 16px;
+}
+.slider-field > label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--chinese-qing);
+  margin-bottom: 6px;
+}
+.slider-field .slider-val {
+  min-width: 44px;
+  text-align: right;
+  font-weight: 600;
+  color: var(--chinese-green);
+  font-variant-numeric: tabular-nums;
+}
+.slider-field input[type="range"] {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  accent-color: var(--chinese-green);
+  cursor: pointer;
+}
+.slider-field .slider-hint {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-tertiary, #999);
 }
  
 .test-status {

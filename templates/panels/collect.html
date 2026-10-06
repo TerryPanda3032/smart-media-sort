@@ -7,7 +7,8 @@
       <div class="folder-item"
         data-name="{{ folder.name | e }}"
         data-author="{{ folder.author | default('') | e }}"
-        data-addwatermark="{{ 'true' if folder.get('addWatermark', True) else 'false' }}"
+        data-addwatermarkphoto="{{ 'true' if folder.get('addWatermarkPhoto', True) else 'false' }}"
+        data-addwatermarkvideo="{{ 'true' if folder.get('addWatermarkVideo', True) else 'false' }}"
         data-compressphoto="{{ 'true' if folder.get('compressPhoto', True) else 'false' }}"
         data-compressvideo="{{ 'true' if folder.get('compressVideo', True) else 'false' }}">
         <div class="folder-icon"></div>
@@ -124,8 +125,25 @@
         <label>作者</label>
         <input type="text" id="copyAuthor" placeholder="输入作者姓名" />
       </div>
+      <div id="copyImportOptions">
+        <div class="collect-modal-field">
+          <label>导入时间范围</label>
+          <div class="collect-modal-radio">
+            <label><input type="radio" name="copyDateRange" value="all" checked /> 全部</label>
+            <label><input type="radio" name="copyDateRange" value="today" /> 今天</label>
+            <label><input type="radio" name="copyDateRange" value="3days" /> 近三天</label>
+            <label><input type="radio" name="copyDateRange" value="7days" /> 近一周</label>
+          </div>
+        </div>
+        <div class="collect-modal-field collect-modal-check">
+          <label><input type="checkbox" id="copyMoveSource" /> 转移源文件（复制后源文件移入「已拷贝」）</label>
+        </div>
+      </div>
       <div class="collect-modal-field collect-modal-check">
-        <label><input type="checkbox" id="copyAddWatermark" checked /> 添加水印</label>
+        <label><input type="checkbox" id="copyAddWatermarkPhoto" checked /> 照片水印</label>
+      </div>
+      <div class="collect-modal-field collect-modal-check">
+        <label><input type="checkbox" id="copyAddWatermarkVideo" checked /> 视频水印</label>
       </div>
       <div class="collect-modal-field collect-modal-check">
         <label><input type="checkbox" id="copyCompressPhoto" checked /> 压缩照片</label>

@@ -19,7 +19,6 @@
 """
 
 import logging
-import math
 import os
 import subprocess
 import tempfile
@@ -27,9 +26,9 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
-from config import get_ffmpeg_path
+from config import get_ffmpeg_path, read_config
 from media import detect_gpu, scan_media, PHOTO_EXTS, VIDEO_EXTS
 from sse_service import ProgressState
 
@@ -81,16 +80,29 @@ def _get_exif_datetime(filepath):
     return None
 
 
-def _add_watermark_photo(img, author):
+def _watermark_text(author):
+    """水印文字：名字前默认加 ©（若已带 © 则不重复添加）。"""
+    name = (author or "").strip()
+    if not name:
+        return ""
+    return name if name.startswith("©") else "©" + name
+
+
+def _add_watermark_photo(img, author, wm_size=24, wm_opacity=80):
     draw = ImageDraw.Draw(img)
     w, h = img.size
-    font_size = max(int(math.hypot(w, h) * 0.015), 20)
+    # 以 1080 标准高度为基准换算字号：高分辨率照片字号相应增大，
+    # 缩放上屏后水印物理尺寸恒定，不受宽高比/分辨率影响。
+    font_size = max(12, round((wm_size * h) / 1080))
     try:
         font = ImageFont.truetype(FONT_PATH, font_size)
     except Exception:
         font = ImageFont.load_default()
 
-    text = author or ""
+    # 透明度 0-100 → 0-255
+    alpha = max(0, min(255, round(255 * wm_opacity / 100)))
+
+    text = _watermark_text(author)
     bbox = draw.textbbox((0, 0), text, font=font)
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
     padding = max(40, int(min(w, h) * 0.03))
@@ -110,7 +122,7 @@ def _add_watermark_photo(img, author):
     overlay_draw = ImageDraw.Draw(overlay)
     overlay_draw.text(
         (x - crop_x1, y - crop_y1), text,
-        font=font, fill=(255, 255, 255, 204),
+        font=font, fill=(255, 255, 255, alpha),
     )
 
     composite_region = Image.alpha_composite(crop, overlay)
@@ -171,9 +183,9 @@ def _safe_delete(filepath):
 # 照片处理
 # ===========================================================================
 
-def process_photo(filepath, folder_dir, config, seq_num):
+def process_photo(filepath, folder_dir, config, seq_num, wm_size=24, wm_opacity=80):
     compress = config.get("compressPhoto", True)
-    watermark = config.get("addWatermark", True)
+    watermark = config.get("addWatermarkPhoto", True)
     author = config.get("author", "")
 
     try:
@@ -202,6 +214,14 @@ def process_photo(filepath, folder_dir, config, seq_num):
         except Exception:
             pass
 
+        # 归一化 EXIF 朝向：把像素物理旋转到正向后再重编码。
+        # 手机竖拍照片的像素是横着存的、靠 EXIF Orientation 标记显示为竖向；
+        # PIL 的 save() 默认不写回 EXIF，标记一丢就永久变成横图（前端无法纠正）。
+        _src = img
+        img = ImageOps.exif_transpose(_src)
+        if img is not _src:
+            _src.close()
+
         if ts:
             out_name = f"{ts}_{seq_num:04d}{ext}"
         else:
@@ -224,7 +244,7 @@ def process_photo(filepath, folder_dir, config, seq_num):
                 save_kwargs = {"optimize": True}
 
         if watermark and author:
-            img = _add_watermark_photo(img, author)
+            img = _add_watermark_photo(img, author, wm_size, wm_opacity)
 
         img.save(out_path, **save_kwargs)
         img.close()
@@ -243,13 +263,17 @@ def process_photo(filepath, folder_dir, config, seq_num):
 # 视频处理
 # ===========================================================================
 
-def _vcodec_args(gpu, quality="normal"):
+def _vcodec_args(gpu, crf):
     """生成视频编码参数
-    
-    quality: "normal" (CRF 23, 压缩) 或 "high" (CRF 18, 水印专用)
+
+    crf: 画质值 18~35（越小画质越高、编码越慢）。照片/视频上屏物理尺寸恒定。
     硬件编码显式指定 preset + rate-control，避免驱动默认 RC 漂移导致的不稳定/码率不收敛。
     """
-    crf = 18 if quality == "high" else 23
+    try:
+        crf = int(crf)
+    except (TypeError, ValueError):
+        crf = 23
+    crf = max(18, min(35, crf))
     if gpu == "qsv":
         return ["-c:v", "h264_qsv", "-preset", "medium", "-global_quality", str(crf)]
     elif gpu == "amf":
@@ -356,9 +380,10 @@ def _probe_video(filepath, ffmpeg_bin):
         return None, None, None
 
 
-def process_video(filepath, folder_dir, config, gpu, ffmpeg_bin):
+def process_video(filepath, folder_dir, config, gpu, ffmpeg_bin,
+                  wm_size=24, wm_opacity=80, video_crf=23):
     compress = config.get("compressVideo", True)
-    watermark = config.get("addWatermark", True)
+    watermark = config.get("addWatermarkVideo", True)
     author = config.get("author", "")
     if not compress and not watermark:
         return True
@@ -381,16 +406,18 @@ def process_video(filepath, folder_dir, config, gpu, ffmpeg_bin):
     if watermark and author:
         has_drawtext = True
         safe_font = FONT_PATH.replace("\\", "/").replace(":", "\\:")
-        safe_author = author.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
+        safe_author = _watermark_text(author).replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
         vw, vh, _codec = _probe_video(filepath, ffmpeg_bin)
         video_height = vh or 0
-        font_size = max(20, int(math.hypot(vw or 0, video_height or 0) * 0.015))
+        # 基准高度换算：字号随高度相对 1080 缩放，上屏物理尺寸恒定
+        font_size = max(20, round((wm_size * video_height) / 1080) if video_height else wm_size)
         video_padding = max(40, int(video_height * 0.03))
+        alpha_float = max(0.0, min(1.0, wm_opacity / 100.0))
         filters.append(
             f"drawtext=text='{safe_author}':"
             f"fontfile='{safe_font}':"
             f"x=w-tw-{video_padding}:y=h-th-{video_padding}:"
-            f"fontsize={font_size}:fontcolor=white@0.8"
+            f"fontsize={font_size}:fontcolor=white@{alpha_float}"
         )
 
     # ---- 全硬件 GPU 压缩路径（nvenc + cuvep 硬解/硬缩）----
@@ -414,7 +441,7 @@ def process_video(filepath, folder_dir, config, gpu, ffmpeg_bin):
                 "-resize", f"{scale_w}x{scale_h}",
                 "-i", filepath,
             ]
-            hard_cmd += _vcodec_args(gpu, "normal")
+            hard_cmd += _vcodec_args(gpu, video_crf)
             hard_cmd += ["-pix_fmt", "yuv420p", "-c:a", "copy",
                          "-map_metadata", "0", out_path]
 
@@ -424,9 +451,9 @@ def process_video(filepath, folder_dir, config, gpu, ffmpeg_bin):
         vf_arg = ",".join(filters) if filters else None
         if vf_arg:
             cmd += ["-vf", vf_arg]
-        # 如果只加水印不压缩，用高质量编码
-        quality = "high" if not compress else "normal"
-        cmd += _vcodec_args(gpu, quality)
+        # 只加水印不压缩 → 用高画质(18)；压缩 → 用设定画质
+        crf = max(18, min(35, video_crf)) if compress else 18
+        cmd += _vcodec_args(gpu, crf)
         cmd += ["-pix_fmt", "yuv420p", "-c:a", "copy"]
     else:
         cmd += ["-c:v", "copy", "-c:a", "copy"]
@@ -474,7 +501,7 @@ def process_video(filepath, folder_dir, config, gpu, ffmpeg_bin):
             if no_dt_filters:
                 cmd_retry += ["-vf", ",".join(no_dt_filters)]
             if compress:
-                cmd_retry += _vcodec_args(gpu, "normal")
+                cmd_retry += _vcodec_args(gpu, video_crf)
                 cmd_retry += ["-pix_fmt", "yuv420p"]
             else:
                 cmd_retry += ["-c:v", "copy"]
@@ -522,6 +549,24 @@ def process_batch(project_dir, folders, project_key):
 
     logger.info("批处理启动: ffmpeg=%s, gpu=%s", ffmpeg_bin, gpu)
 
+    # 读取全局设置（视频画质 CRF / 水印大小 / 水印透明度）
+    gcfg = read_config() or {}
+    try:
+        wm_size = int(gcfg.get("watermark_size", 24))
+    except (TypeError, ValueError):
+        wm_size = 24
+    try:
+        wm_opacity = int(gcfg.get("watermark_opacity", 80))
+    except (TypeError, ValueError):
+        wm_opacity = 80
+    try:
+        video_crf = int(gcfg.get("video_quality", 23))
+    except (TypeError, ValueError):
+        video_crf = 23
+    wm_size = max(8, min(80, wm_size))
+    wm_opacity = max(0, min(100, wm_opacity))
+    video_crf = max(18, min(35, video_crf))
+
     _batch_progress.reset(project_key, {
         "percent": 0.0, "stage": "photo", "photo_active": False,
         "video_active": False, "watermark_active": False,
@@ -549,12 +594,14 @@ def process_batch(project_dir, folders, project_key):
     for folder, fdir, photos, videos, folder_total in all_folders:
         compress_photo = folder.get("compressPhoto", True)
         compress_video = folder.get("compressVideo", True)
-        add_watermark = folder.get("addWatermark", True)
+        # 兼容旧项目（只有 addWatermark 单键）：拆分成照片/视频水印
+        _old_wm = folder.get("addWatermark")
+        add_watermark_photo = folder.get("addWatermarkPhoto", _old_wm if _old_wm is not None else True)
+        add_watermark_video = folder.get("addWatermarkVideo", _old_wm if _old_wm is not None else True)
         has_photos = bool(photos)
         has_videos = bool(videos)
         needs_photo = has_photos
-        needs_video = compress_video or add_watermark
-        has_watermark = add_watermark and (has_photos or has_videos)
+        needs_video = compress_video or add_watermark_video
 
         _push_progress(
             project_key,
@@ -562,7 +609,7 @@ def process_batch(project_dir, folders, project_key):
             stage="photo",
             photo_active=(needs_photo and has_photos),
             video_active=False,
-            watermark_active=has_watermark and has_photos and needs_photo,
+            watermark_active=(add_watermark_photo and has_photos and needs_photo),
         )
 
         folder_done = 0
@@ -570,10 +617,10 @@ def process_batch(project_dir, folders, project_key):
         if has_photos and needs_photo:
             _push_progress(project_key, stage="photo",
                            photo_active=True, video_active=False,
-                           watermark_active=add_watermark)
+                           watermark_active=add_watermark_photo)
             max_workers = min(os.cpu_count() or 2, 4)
             with ThreadPoolExecutor(max_workers=max_workers) as pool:
-                futures = {pool.submit(process_photo, p, fdir, folder, idx): p
+                futures = {pool.submit(process_photo, p, fdir, folder, idx, wm_size, wm_opacity): p
                            for idx, p in enumerate(photos, 1)}
                 for future in as_completed(futures):
                     ok = future.result()
@@ -594,9 +641,9 @@ def process_batch(project_dir, folders, project_key):
         if has_videos and needs_video:
             _push_progress(project_key, stage="video",
                            photo_active=False, video_active=True,
-                           watermark_active=add_watermark)
+                           watermark_active=add_watermark_video)
             for v in videos:
-                ok = process_video(v, fdir, folder, gpu, ffmpeg_bin)
+                ok = process_video(v, fdir, folder, gpu, ffmpeg_bin, wm_size, wm_opacity, video_crf)
                 if not ok:
                     logger.warning("视频失败跳过: %s", v)
                 folder_done += 1

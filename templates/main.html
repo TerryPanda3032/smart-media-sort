@@ -60,22 +60,37 @@
         <input type="password" name="api_key" placeholder="sk-..." />
         <label>推理模型</label>
         <input type="text" name="model" placeholder="Qwen/Qwen3.5-397B-A17B" />
-        <label>快速模型</label>
-        <input type="text" name="fast_model" placeholder="Qwen/Qwen3.5-35B-A3B" />
         <label>主力模型思考强度</label>
         <select name="reasoning_effort">
           <option value="low">低</option>
           <option value="medium">中</option>
           <option value="high">高</option>
         </select>
-        <label class="checkbox-label">
-          <input type="checkbox" name="fast_model_no_cot" checked />
-          <span>关闭思维链（快速模型不进行逐步推理）</span>
-        </label>
         <label>FFmpeg 路径</label>
         <div class="input-row">
           <input type="text" name="ffmpeg_path" placeholder="ffmpeg/bin/ffmpeg.exe" />
           <button type="button" class="btn-ghost" id="browseFfmpegBtn">浏览</button>
+        </div>
+        <div class="slider-field">
+          <label>视频压缩质量（越小越清晰、越慢）
+            <span class="slider-val">23</span>
+          </label>
+          <input type="range" id="videoQuality" name="video_quality" min="18" max="35" step="1" value="23" />
+          <div class="slider-hint"><span>高画质 · 慢</span><span>一般</span><span>低画质 · 快</span></div>
+        </div>
+        <div class="slider-field">
+          <label>水印大小（上屏物理尺寸，以 1080 标准高度为基准）
+            <span class="slider-val">24</span>
+          </label>
+          <input type="range" id="watermarkSize" name="watermark_size" min="8" max="80" step="1" value="24" />
+          <div class="slider-hint"><span>小</span><span>中</span><span>大</span></div>
+        </div>
+        <div class="slider-field">
+          <label>水印透明度
+            <span class="slider-val">80%</span>
+          </label>
+          <input type="range" id="watermarkOpacity" name="watermark_opacity" min="0" max="100" step="1" value="80" />
+          <div class="slider-hint"><span>透明</span><span>适中</span><span>不透明</span></div>
         </div>
         <div id="testStatus" class="test-status"></div>
         <div class="card-actions">

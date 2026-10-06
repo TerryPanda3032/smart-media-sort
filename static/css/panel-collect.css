@@ -70,7 +70,19 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  overflow: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(91, 122, 138, 0.35) transparent;
+}
+.panel-collect .pc-folder-panel::-webkit-scrollbar {
+  width: 6px;
+}
+.panel-collect .pc-folder-panel::-webkit-scrollbar-thumb {
+  background: rgba(91, 122, 138, 0.35);
+  border-radius: 3px;
+}
+.panel-collect .pc-folder-panel::-webkit-scrollbar-track {
+  background: transparent;
 }
  
 .panel-collect .folder-item {
@@ -83,6 +95,7 @@
   cursor: pointer;
   position: relative;
   z-index: 1;
+  flex-shrink: 0;
   animation: folderItemIn 0.4s ease both;
 }
  
@@ -778,6 +791,29 @@
   width: 16px;
   height: 16px;
   accent-color: var(--chinese-green);
+}
+
+/* 复制弹窗：导入时间范围（radio 组）与自定义日期 */
+.collect-modal-radio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+.collect-modal-radio label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  margin: 0;
+  letter-spacing: 1px;
+}
+.collect-modal-radio input[type="radio"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--chinese-green);
+  margin: 0;
 }
  
 .collect-modal-actions {

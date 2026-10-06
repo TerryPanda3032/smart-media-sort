@@ -12,10 +12,14 @@ DEFAULT_CONFIG = {
     "api_url": "https://api-inference.modelscope.cn/v1/chat/completions",
     "api_key": "",
     "model": "Qwen/Qwen3.5-397B-A17B",
-    "fast_model": "Qwen/Qwen3.5-35B-A3B",
-    "fast_model_no_cot": True,
     "reasoning_effort": "medium",   # 主力模型思考强度：low / medium / high（不支持时自动忽略）
     "ffmpeg_path": "",
+    # 视频压缩质量，对应 ffmpeg CRF 值（越小画质越高、编码越慢）；范围 18-35
+    "video_quality": 23,
+    # 水印字号（以 1080 标准高度为基准的像素值），照片/视频上屏物理尺寸恒定
+    "watermark_size": 24,
+    # 水印透明度（0-100，越大越不透明）
+    "watermark_opacity": 80,
 }
 
 

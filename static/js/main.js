@@ -129,10 +129,22 @@
       if (config.api_url != null) els.api_url.value = config.api_url;
       if (config.api_key != null) els.api_key.value = config.api_key;
       if (config.model != null) els.model.value = config.model;
-      if (config.fast_model != null) els.fast_model.value = config.fast_model;
-      if (config.fast_model_no_cot != null) els.fast_model_no_cot.checked = config.fast_model_no_cot;
       if (config.reasoning_effort != null) els.reasoning_effort.value = config.reasoning_effort;
       if (config.ffmpeg_path != null) els.ffmpeg_path.value = config.ffmpeg_path;
+      if (config.video_quality != null) els.video_quality.value = config.video_quality;
+      if (config.watermark_size != null) els.watermark_size.value = config.watermark_size;
+      if (config.watermark_opacity != null) els.watermark_opacity.value = config.watermark_opacity;
+      updateSliderLabels();
+  }
+
+  function updateSliderLabels() {
+      var els = settingsForm.elements;
+      var vq = document.getElementById("videoQuality");
+      if (vq) vq.previousElementSibling.querySelector(".slider-val").textContent = els.video_quality.value;
+      var ws = document.getElementById("watermarkSize");
+      if (ws) ws.previousElementSibling.querySelector(".slider-val").textContent = els.watermark_size.value;
+      var wo = document.getElementById("watermarkOpacity");
+      if (wo) wo.previousElementSibling.querySelector(".slider-val").textContent = els.watermark_opacity.value + "%";
   }
 
   function loadProjects() {
@@ -192,10 +204,11 @@
         api_key: els.api_key.value.trim(),
         api_key_masked: true,
         model: els.model.value.trim(),
-        fast_model: els.fast_model.value.trim(),
-        fast_model_no_cot: els.fast_model_no_cot.checked,
         reasoning_effort: els.reasoning_effort.value,
         ffmpeg_path: els.ffmpeg_path.value.trim(),
+        video_quality: parseInt(els.video_quality.value, 10) || 23,
+        watermark_size: parseInt(els.watermark_size.value, 10) || 24,
+        watermark_opacity: parseInt(els.watermark_opacity.value, 10) || 80,
       };
 
       saveBtn.disabled = true;
@@ -240,6 +253,11 @@
           saveBtn.disabled = false;
           saveBtn.textContent = "保存并测试";
         });
+    });
+
+    ["videoQuality", "watermarkSize", "watermarkOpacity"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener("input", updateSliderLabels);
     });
 
     browseBtn.addEventListener("click", function () {

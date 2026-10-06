@@ -26,3 +26,8 @@ backend/__pycache__/
 ffmpeg/
 static/fonts/
 .design_library/
+
+# SSCD 官方 TorchScript 源文件（约 94MB，可从 fbaipublicfiles.com 重新下载，不随仓库分发）
+backend/models/sscd_disc_mixup.torchscript.pt
+# 说明：相似图/连拍检测模型 backend/models/sscd_disc_mixup.onnx（约 94MB，由 export_sscd.py 转换）
+# 随仓库分发，不再忽略。

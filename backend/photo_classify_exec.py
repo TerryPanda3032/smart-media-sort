@@ -50,9 +50,9 @@ from photo_classify import _extract_json
 
 logger = logging.getLogger(__name__)
 
-BATCH_LIMIT = 35          # 每批照片数
+BATCH_LIMIT = 100          # 每批照片数
 SAMPLE_PER_CAT = 2        # 每个类别取样张数
-MAX_IMAGES_PER_BATCH = 45 # 单批图片总数上限（样张 + 本批照片），样张多时须缩小本批
+MAX_IMAGES_PER_BATCH = 120 # 单批图片总数上限（样张 + 本批照片），样张多时须缩小本批
 MAX_PARSE_RETRY = 3       # 单批解析失败/遗漏重试次数
 MAX_BATCHES = 2000        # 批次安全上限
 MAX_ROUNDS = 200          # AI 调度循环安全上限（防止死循环）

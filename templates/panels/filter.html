@@ -2,169 +2,184 @@
   {% if step2_locked is defined %}data-step2-locked="{{ 'true' if step2_locked else 'false' }}"{% endif %}>
   <div class="pf-main" id="pfMain">
     <div class="pf-ring-section">
-      <div class="pattern-layer"></div>
- 
-      <div class="ring-wrap" id="ringWrap">
-        <!-- 内侧两道半封闭装饰圆环 -->
-        <svg class="arc-svg animated" id="arcSvgInner" viewBox="0 0 520 520" width="520" height="520" aria-hidden="true">
-          <path id="innerArc2" d="" stroke="rgba(61,99,144,0.35)" stroke-width="2" />
-          <path id="innerArc1" d="" stroke="rgba(61,99,144,0.65)" stroke-width="2" />
-        </svg>
- 
-        <!-- 外侧四道装饰弧线 -->
-        <svg class="arc-svg brush subtle" id="arcSvgOuterSubtle" viewBox="0 0 800 800" width="800" height="800" aria-hidden="true">
-          <path id="arcLL_sub" d="" fill="rgba(61,99,144,0.45)" stroke="none" />
-          <path id="arcUR_sub" d="" fill="rgba(61,99,144,0.45)" stroke="none" />
-        </svg>
-        <svg class="arc-svg brush animated" id="arcSvgOuterMain" viewBox="0 0 800 800" width="800" height="800" aria-hidden="true">
-          <path id="arcLL_main" d="" fill="rgba(61,99,144,0.80)" stroke="none" />
-          <path id="arcUR_main" d="" fill="rgba(61,99,144,0.80)" stroke="none" />
-        </svg>
- 
-        <div class="ring-inner-glow"></div>
- 
-        <svg class="main-ring" viewBox="0 0 400 400" role="img" aria-label="境界进度环">
-          <defs>
-            <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="var(--chinese-green)" />
-              <stop offset="25%" stop-color="#7BC47F" />
-              <stop offset="50%" stop-color="var(--chinese-green)" />
-              <stop offset="100%" stop-color="#5BB6D4" />
-            </linearGradient>
-            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="5" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
-          <circle class="ring-bg" cx="200" cy="200" r="180" />
-          <circle id="progressCircle" class="ring-progress" cx="200" cy="200" r="180" />
-        </svg>
- 
-        <div class="center-info">
-          <div class="ring-start" id="ringStart">
-            <button class="ring-start-btn" id="startBtn">开始</button>
-          </div>
-          <div class="ring-progress-info" id="ringProgressInfo" style="display:none">
-            <div class="rp-label">进度</div>
-            <div class="rp-percent" id="rpPercent">0<span class="rp-pct">%</span></div>
-            <div class="rp-detail"><span id="rpDone">0</span> / <span id="rpTotal">-</span></div>
-          </div>
-  </div>
-</div>
- 
-<!-- 进入 step2 的跳过询问弹窗 -->
-<div class="collect-modal-overlay" id="skipFilterModal" style="display:none">
-  <div class="collect-modal-card">
-    <div class="collect-modal-header">进入 AI 分类</div>
-    <div class="collect-modal-body">
-      <p style="font-size:14px;text-align:center;letter-spacing:1px;line-height:1.8;margin:0">
-        <span style="font-weight:600">本步是「AI 废片筛检」，用于剔除过曝欠曝 / 内容无物 / 损坏的照片。</span><br>
-        <span style="color:var(--text-secondary)">是否需要跳过它，直接进入 AI 分类？</span>
-      </p>
-    </div>
-    <div class="collect-modal-actions" style="gap:16px">
-      <button type="button" id="skipFilterYes"
-        class="collect-modal-btn"
-        style="flex:1;background:var(--chinese-green);border-color:var(--chinese-green);color:#fff;font-weight:700;cursor:pointer">
-        跳过筛检
-      </button>
-      <button type="button" class="collect-modal-btn collect-modal-btn-cancel" id="skipFilterNo" style="flex:1">
-        继续筛检
-      </button>
-    </div>
-  </div>
-</div>
+      <div class="pf-rings-col">
+        <div class="pattern-layer"></div>
 
-<!-- 筛检确认弹窗 -->
-<div class="collect-modal-overlay" id="filterConfirmModal" style="display:none">
-  <div class="collect-modal-card">
-    <div class="collect-modal-header">确认进入下一步</div>
-    <div class="collect-modal-body">
-      <p style="font-size:14px;text-align:center;letter-spacing:1px;line-height:1.8;margin:0">
-        <span style="color:var(--danger);font-weight:600">废片将被移入「废弃物」文件夹，不可恢复。</span><br>
-        <span style="color:var(--text-secondary)">此操作不可逆。</span>
-      </p>
+        <!-- 主环：长按开始 + 筛检进度（固定于最终位置，无移动动画） -->
+        <div class="ring-wrap" id="ringWrap">
+          <div class="ring-inner-glow"></div>
+
+          <svg class="main-ring" viewBox="0 0 400 400" role="img" aria-label="境界进度环">
+            <defs>
+              <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="var(--chinese-green)" />
+                <stop offset="25%" stop-color="#7BC47F" />
+                <stop offset="50%" stop-color="var(--chinese-green)" />
+                <stop offset="100%" stop-color="#5BB6D4" />
+              </linearGradient>
+              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="5" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+            </defs>
+            <circle class="ring-bg" cx="200" cy="200" r="180" />
+            <circle id="progressCircle" class="ring-progress" cx="200" cy="200" r="180" />
+          </svg>
+
+          <div class="center-info">
+            <div class="ring-start" id="ringStart">
+              <button class="ring-start-btn" id="startBtn">开始</button>
+            </div>
+            <div class="ring-progress-info" id="ringProgressInfo" style="display:none">
+              <div class="rp-label">进度</div>
+              <div class="rp-percent" id="rpPercent">0<span class="rp-pct">%</span></div>
+              <div class="rp-detail"><span id="rpDone">0</span> / <span id="rpTotal">-</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 废片率环：与主环同尺寸、无装饰弧线；磨砂玻璃透明环，默认无填充，
+             数据接入点见 updateWasteRate()（后续由后端数据同步调用） -->
+        <div class="waste-rate-wrap" id="wasteRateWrap">
+          <svg class="wr-svg" viewBox="0 0 200 200" role="img" aria-label="废片率环">
+            <circle class="wr-bg" cx="100" cy="100" r="88" />
+            <circle class="wr-progress" id="wrProgress" cx="100" cy="100" r="88" />
+          </svg>
+          <div class="wr-center">
+            <div class="wr-label">废片率</div>
+            <div class="wr-value" id="wrValue">--</div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="collect-modal-actions" style="gap:16px">
-      <button type="button" class="collect-modal-btn collect-modal-btn-cancel" id="filterConfirmCancel">取消</button>
-      <button type="button" class="collect-modal-btn collect-modal-btn-confirm lp-btn" id="filterConfirmBtn">
-        <span class="lp-fill" id="filterLpFill"></span>
-        <span class="lp-text" id="filterLpText">长按 3s 确认</span>
-      </button>
-    </div>
-  </div>
-</div>
-    </div>
+
     <div class="pf-content-section" id="pfContentSection">
-      <div class="pf-card pf-card-1 bg_card">
-        <div class="pf-card-body">
-          <div class="pf-card-num">01</div>
-          <div class="pf-card-label">过曝欠曝</div>
-          <div class="pf-card-stats">
-            <span class="pf-card-count" id="wasteCount2">0</span>
-            <button class="pf-card-btn" data-type="2">
-              <svg viewBox="0 0 1024 1024" width="28" height="28"><path d="M340.688 830.24l11.312 11.328a16 16 0 0 0 22.624 0L685.76 530.448a16 16 0 0 0 0-22.64L374.624 196.688a16 16 0 0 0-22.624 0l-11.312 11.312a16 16 0 0 0 0 22.624l288.496 288.496-288.496 288.512a16 16 0 0 0 0 22.624z" fill="currentColor"></path></svg>
-            </button>
+      <!-- 大面板：左上图片区 + 下技术参数区 + 右侧人脸缩略 & 三类废片小卡片 -->
+      <div class="pf-big-panel">
+        <div class="pf-bp-main">
+          <div class="pf-bp-left">
+            <div class="pf-bp-image-area" id="pfImageArea">
+              <div class="pf-img-frame" id="pfImgFrame" style="display:none">
+                <img class="pf-img" id="pfImg" alt="">
+                <svg class="pf-overlay" id="pfOverlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+              </div>
+              <span class="pf-bp-hint" id="pfImgHint">图片预览区</span>
+            </div>
+            <div class="pf-bp-params-area" id="pfParamsArea">
+              <div class="pf-params-list" id="pfParamsList">
+                <span class="pf-bp-hint" id="pfParamsHint">技术参数区</span>
+              </div>
+            </div>
+          </div>
+          <div class="pf-bp-right">
+            <div class="pf-face-box" id="pfFaceBox">
+              <span class="pf-face-label">最清晰人脸</span>
+              <div class="pf-face-img-wrap">
+                <img class="pf-face-img" id="pfFaceImg" alt="最清晰人脸" style="display:none">
+                <span class="pf-face-empty" id="pfFaceEmpty">--</span>
+              </div>
+            </div>
+            <div class="pf-small-card" data-waste="exposure" id="cardExposure">
+              <span class="pf-sc-label">曝光问题</span>
+              <span class="pf-sc-count" id="wasteCountExposure">0</span>
+            </div>
+            <div class="pf-small-card" data-waste="focus" id="cardFocus">
+              <span class="pf-sc-label">对焦问题</span>
+              <span class="pf-sc-count" id="wasteCountFocus">0</span>
+            </div>
+            <div class="pf-small-card" data-waste="face" id="cardFace">
+              <span class="pf-sc-label">人脸问题</span>
+              <span class="pf-sc-count" id="wasteCountFace">0</span>
+            </div>
           </div>
         </div>
-        <div class="pf-card-ornament"></div>
-      </div>
-      <div class="pf-card pf-card-2 bg_card">
-        <div class="pf-card-body">
-          <div class="pf-card-num">02</div>
-          <div class="pf-card-label">内容无物</div>
-          <div class="pf-card-stats">
-            <span class="pf-card-count" id="wasteCount3">0</span>
-            <button class="pf-card-btn" data-type="3">
-              <svg viewBox="0 0 1024 1024" width="28" height="28"><path d="M340.688 830.24l11.312 11.328a16 16 0 0 0 22.624 0L685.76 530.448a16 16 0 0 0 0-22.64L374.624 196.688a16 16 0 0 0-22.624 0l-11.312 11.312a16 16 0 0 0 0 22.624l288.496 288.496-288.496 288.512a16 16 0 0 0 0 22.624z" fill="currentColor"></path></svg>
-            </button>
-          </div>
-        </div>
-        <div class="pf-card-ornament"></div>
-      </div>
-      <div class="pf-card pf-card-3 bg_card">
-        <div class="pf-card-body">
-          <div class="pf-card-num">03</div>
-          <div class="pf-card-label">文件损坏</div>
-          <div class="pf-card-stats">
-            <span class="pf-card-count" id="wasteCount4">0</span>
-            <button class="pf-card-btn" data-type="4">
-              <svg viewBox="0 0 1024 1024" width="28" height="28"><path d="M340.688 830.24l11.312 11.328a16 16 0 0 0 22.624 0L685.76 530.448a16 16 0 0 0 0-22.64L374.624 196.688a16 16 0 0 0-22.624 0l-11.312 11.312a16 16 0 0 0 0 22.624l288.496 288.496-288.496 288.512a16 16 0 0 0 0 22.624z" fill="currentColor"></path></svg>
-            </button>
-          </div>
-        </div>
-        <div class="pf-card-ornament"></div>
       </div>
     </div>
   </div>
-</div>
-<!-- 筛检进度弹窗 -->
-<div class="collect-modal-overlay" id="filterProgressModal" style="display:none">
-  <div class="collect-modal-card fpm-card">
-    <div class="collect-modal-header" style="color:var(--chinese-green)">正在筛检常规素材</div>
-    <div class="collect-modal-body">
-      <div class="fpm-progress-track">
-        <div class="fpm-progress-fill" id="fpmProgressFill"></div>
+
+  <!-- 筛检确认弹窗 -->
+  <div class="collect-modal-overlay" id="filterConfirmModal" style="display:none">
+    <div class="collect-modal-card">
+      <div class="collect-modal-header">确认进入下一步</div>
+      <div class="collect-modal-body">
+        <p style="font-size:14px;text-align:center;letter-spacing:1px;line-height:1.8;margin:0">
+          <span style="color:var(--danger);font-weight:600">仍为「放弃」的废片将在此次确认后移入「废弃物」。</span><br>
+          <span style="color:var(--text-secondary)">已拯救的照片会保留；确认后进入 AI 分类。</span>
+        </p>
       </div>
-      <div class="fpm-stats">
-        <span id="fpmDone">0</span> / <span id="fpmTotal">0</span>
+      <div class="collect-modal-actions" style="gap:16px">
+        <button type="button" class="collect-modal-btn collect-modal-btn-cancel" id="filterConfirmCancel">取消</button>
+        <button type="button" class="collect-modal-btn collect-modal-btn-confirm lp-btn" id="filterConfirmBtn">
+          <span class="lp-fill" id="filterLpFill"></span>
+          <span class="lp-text" id="filterLpText">长按 3s 确认</span>
+        </button>
       </div>
     </div>
   </div>
-</div>
- 
-<!-- 废片查看面板 -->
-<div class="waste-viewer-overlay" id="wasteViewer">
-  <div class="waste-viewer-panel">
-    <div class="waste-viewer-header">
-      <span class="waste-viewer-title" id="wasteViewerTitle"></span>
-      <button class="waste-viewer-close" id="wasteViewerClose">
-        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
-      </button>
+
+  <!-- 筛检进度弹窗 -->
+  <div class="collect-modal-overlay" id="filterProgressModal" style="display:none">
+    <div class="collect-modal-card fpm-card">
+      <div class="collect-modal-header" id="fpmHeader" style="color:var(--chinese-green)">正在筛检常规素材</div>
+      <div class="collect-modal-body">
+        <div class="fpm-progress-track">
+          <div class="fpm-progress-fill" id="fpmProgressFill"></div>
+        </div>
+        <div class="fpm-stats">
+          <span id="fpmDone">0</span> / <span id="fpmTotal">0</span>
+        </div>
+      </div>
     </div>
-    <div class="waste-viewer-grid" id="wasteViewerGrid"></div>
-    <div class="waste-viewer-footer" id="wasteViewerFooter">
-      <span style="color:var(--danger);font-size:13px">双击拯救照片，单击取消拯救</span>
+  </div>
+
+  <!-- 废片查看面板（网格） -->
+  <div class="waste-viewer-overlay" id="wasteViewer">
+    <div class="waste-viewer-panel">
+      <div class="waste-viewer-header">
+        <span class="waste-viewer-title" id="wasteViewerTitle"></span>
+        <button class="waste-viewer-close" id="wasteViewerClose">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+        </button>
+      </div>
+      <div class="waste-viewer-grid" id="wasteViewerGrid"></div>
+      <div class="waste-viewer-footer" id="wasteViewerFooter">
+        <span style="color:var(--text-secondary);font-size:13px">单击切换拯救 / 放弃，双击放大查看</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 废片放大面板 -->
+  <div class="waste-zoom-overlay" id="wasteZoom" style="display:none">
+    <div class="wz-panel">
+      <button class="wz-close" id="wzClose" aria-label="关闭">&times;</button>
+      <button class="wz-nav wz-prev" id="wzPrev" aria-label="上一张">&#8249;</button>
+      <div class="wz-stage"><img class="wz-img" id="wzImg" alt=""></div>
+      <button class="wz-nav wz-next" id="wzNext" aria-label="下一张">&#8250;</button>
+      <div class="wz-actions">
+        <button class="wz-btn wz-discard" id="wzDiscard">放弃</button>
+        <button class="wz-btn wz-rescue" id="wzRescue">拯救</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 连拍组筛选：只有放大一种模式，检测完成后直接进入 -->
+  <div class="waste-zoom-overlay" id="burstZoom" style="display:none">
+    <div class="wz-panel">
+      <button class="wz-close" id="bzClose" aria-label="关闭">&times;</button>
+      <div class="burst-zoom-top">
+        <span class="burst-zoom-group" id="bzGroupInfo">第 - / - 组</span>
+        <span class="burst-zoom-sep">·</span>
+        <span class="burst-zoom-count" id="bzPhotoInfo">本组 - / - 张</span>
+        <span class="burst-zoom-rec" id="bzRecTag" style="display:none">系统推荐</span>
+      </div>
+      <button class="wz-nav wz-prev" id="bzPrev" aria-label="本组上一张">&#8249;</button>
+      <div class="wz-stage"><img class="wz-img" id="bzImg" alt=""></div>
+      <button class="wz-nav wz-next" id="bzNext" aria-label="本组下一张">&#8250;</button>
+      <div class="wz-actions">
+        <button class="wz-btn wz-discard" id="bzDiscard">舍弃</button>
+        <button class="wz-btn wz-rescue" id="bzRescue">保留</button>
+      </div>
+      <div class="burst-zoom-hint" id="bzHint">A/D 本组前后 · 空格 保留/舍弃 · Q/E 切换连拍组 · Esc 关闭</div>
     </div>
   </div>
 </div>

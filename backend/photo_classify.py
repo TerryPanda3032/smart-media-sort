@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""照片分类计划拆解 — 调用快速模型，把用户要求拆解成可执行步骤。
+"""照片分类计划拆解 — 调用推理模型，把用户要求拆解成可执行步骤。
 
 对话协议（由前端维护状态）：
   首次调用: {"original_request": "用户原始要求", "clarifications": []}
   后续调用: {"original_request": "用户原始要求",
              "clarifications": [{"question": "AI 提问", "answer": "用户回答"}, ...]}
 
-快速模型返回（status 二选一）：
+推理模型返回（status 二选一）：
   question: {"status": "question", "original_request": "...", "question": "...", "plan": null}
   plan:     {"status": "plan", "original_request": "...", "question": null, "plan": {...}}
 """
@@ -23,7 +23,7 @@ from config import read_config
 logger = logging.getLogger(__name__)
 
 MAX_RETRIES = 3
-TIMEOUT = 120
+TIMEOUT = 1200
 
 SYSTEM_PROMPT = """你是一个「照片分类计划拆解助手」。根据用户的整理/分类要求，把要求拆成一组可执行的小步骤，只输出 JSON。
 
@@ -113,7 +113,7 @@ def _sanitize_quotes(text: str) -> str:
 
 
 def build_messages(original_request: str, clarifications: list, authors: list | None = None) -> list[dict]:
-    """构造发给快速模型的消息：系统提示词 + 作者名单 + 多轮真实问答上下文。
+    """构造发给推理模型的消息：系统提示词 + 作者名单 + 多轮真实问答上下文。
 
     历史以真实的 user/assistant 交替轮次传入（而非拍平成一整段文字），
     保证 AI 的每一次提问和用户的每一次回答都完整进入上下文，避免重复提问。
@@ -256,7 +256,7 @@ def _extract_json(text: str) -> dict | None:
 
 
 def call_plan(original_request: str, clarifications: list, authors: list | None = None) -> dict:
-    """调用快速模型拆解分类计划，返回结构化结果。
+    """调用推理模型拆解分类计划，返回结构化结果。
 
     失败（配置缺失 / 网络 / 非 JSON / 未知 status）时抛出 RuntimeError。
     """

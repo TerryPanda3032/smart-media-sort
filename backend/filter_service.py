@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""筛检服务 — 遍历项目子文件夹，移除非白名单文件至「废弃物」。
+"""筛检服务 — 遍历项目子文件夹，删除不合格式文件、筛去损坏照片，移至「废弃物」。
+
+第一个读条（筛检常规素材）完成两件事：
+  1. 删除不符合格式的文件（非 KEEP_EXTS 白名单）；
+  2. 对保留的照片（jpg/jpeg/png）用 PIL 验证完整性，损坏的一并移入废弃物。
 
 SSE 事件类型: filter
 """
@@ -9,12 +13,17 @@ import os
 import shutil
 import threading
 
+from PIL import Image
+
 from sse_service import ProgressState
 from media import count_project_files
 
 logger = logging.getLogger(__name__)
 
 KEEP_EXTS = {".png", ".dng", ".jpg", ".jpeg", ".mp4", ".mov", ".avi"}
+
+# 需要 PIL 验证完整性的照片格式（dng 等 RAW 不做验证，避免误删正常文件）
+VERIFY_EXTS = {".png", ".jpg", ".jpeg"}
 
 _filter_progress = ProgressState()
 
@@ -42,6 +51,16 @@ def start_filter(project_dir: str, project_key: str):
         daemon=True,
     )
     t.start()
+
+
+def _is_broken_photo(filepath: str) -> bool:
+    """用 PIL 校验照片能否完整解码；失败视为文件损坏。"""
+    try:
+        with Image.open(filepath) as img:
+            img.verify()
+        return False
+    except Exception:
+        return True
 
 
 def _run_filter(project_dir: str, project_key: str):
@@ -92,9 +111,15 @@ def _run_filter(project_dir: str, project_key: str):
             raise PermissionError(f"无法创建废弃物目录: {e}")
 
         removed = 0
+        broken = 0
         for idx, fp in enumerate(all_files):
             ext = os.path.splitext(fp)[1].lower()
+            remove_reason = None
             if ext not in KEEP_EXTS:
+                remove_reason = "格式不符"
+            elif ext in VERIFY_EXTS and _is_broken_photo(fp):
+                remove_reason = "文件损坏"
+            if remove_reason:
                 try:
                     dest = os.path.join(waste_dir, os.path.basename(fp))
                     if os.path.exists(dest):
@@ -105,6 +130,9 @@ def _run_filter(project_dir: str, project_key: str):
                             counter += 1
                     shutil.move(fp, dest)
                     removed += 1
+                    if remove_reason == "文件损坏":
+                        broken += 1
+                    logger.info("移除文件（%s）: %s", remove_reason, fp)
                 except Exception as e:
                     logger.warning("移动失败 %s: %s", fp, e)
 
@@ -116,7 +144,8 @@ def _run_filter(project_dir: str, project_key: str):
                            done=done,
                            percent=pct,
                            kept=done - removed,
-                           removed=removed)
+                           removed=removed,
+                           broken=broken)
 
         _push_progress(project_key,
                        status="done",
@@ -125,7 +154,8 @@ def _run_filter(project_dir: str, project_key: str):
                        percent=100,
                        kept=total - removed,
                        removed=removed,
-                       message=f"筛检完成，保留 {total - removed} 项，移除 {removed} 项")
+                       broken=broken,
+                       message=f"筛检完成，保留 {total - removed} 项，移除 {removed} 项（其中损坏 {broken} 张）")
 
     except Exception as e:
         logger.exception("筛检失败")

@@ -125,6 +125,10 @@
       if (leftover && leftover.parentNode) leftover.parentNode.removeChild(leftover);
     }
 
+    // 「连拍筛选」按钮是 step2 专属：切换面板时先隐藏，由 panel-filter 按需亮出。
+    var burstBtn = document.getElementById("btnBurst");
+    if (burstBtn) { burstBtn.style.display = "none"; burstBtn.disabled = true; }
+
     fetch(url)
       .then(function (r) {
         if (!r.ok) throw new Error("HTTP " + r.status);

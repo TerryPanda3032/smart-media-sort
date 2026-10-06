@@ -58,7 +58,8 @@ from batch import _batch_progress, process_batch, set_sse_callback as batch_set_
 from copy_service import set_sse_callback as copy_set_sse
 import deliver_service
 import filter_service
-import ai_filter
+import quality_filter
+import burst_service
 import video_tagger
 import photo_index
 import photo_classify
@@ -118,13 +119,22 @@ def _sse_push_filter(project_key: str, data: dict):
 filter_service.set_sse_callback(_sse_push_filter)
 
 
-def _sse_push_ai_filter(project_key: str, data: dict):
+def _sse_push_quality(project_key: str, data: dict):
     event = dict(data)
-    event["_type"] = "ai_filter"
+    event["_type"] = "quality_filter"
     _sse_broadcast(project_key, event)
 
 
-ai_filter.set_sse_callback(_sse_push_ai_filter)
+quality_filter.set_sse_callback(_sse_push_quality)
+
+
+def _sse_push_burst(project_key: str, data: dict):
+    event = dict(data)
+    event["_type"] = "burst"
+    _sse_broadcast(project_key, event)
+
+
+burst_service.set_sse_callback(_sse_push_burst)
 
 
 def _sse_push_video_tagger(project_key: str, data: dict):
@@ -289,12 +299,8 @@ async def api_test_connection(request: Request):
     if not api_key:
         return {"status": "error", "message": "API 密钥不能为空"}
 
-    use_fast = body.get("is_fast", False)
-    no_cot = body.get("fast_model_no_cot", False)
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     messages = [{"role": "user", "content": "Hi"}]
-    if use_fast and no_cot:
-        messages.insert(0, {"role": "system", "content": "请直接回答，不要进行逐步推理。"})
     payload = {"model": model, "messages": messages, "max_tokens": 5}
 
     loop = asyncio.get_event_loop()
@@ -508,10 +514,15 @@ async def project_panel(request: Request, name: str, step: int):
             for entry in os.scandir(project_dir):
                 if entry.is_dir() and not entry.name.startswith('.'):
                     meta = folder_meta.get(entry.name, {})
+                    # 兼容旧项目（只有 addWatermark 单键）
+                    _old_wm = meta.get("addWatermark")
+                    add_wm_photo = meta.get("addWatermarkPhoto", _old_wm if _old_wm is not None else True)
+                    add_wm_video = meta.get("addWatermarkVideo", _old_wm if _old_wm is not None else True)
                     subfolders.append({
                         "name": entry.name,
                         "author": meta.get("author", ""),
-                        "addWatermark": meta.get("addWatermark", True),
+                        "addWatermarkPhoto": add_wm_photo,
+                        "addWatermarkVideo": add_wm_video,
                         "compressPhoto": meta.get("compressPhoto", True),
                         "compressVideo": meta.get("compressVideo", True),
                     })
@@ -550,9 +561,13 @@ async def api_collect_copy(request: Request, name: str):
     source_path = body.get("sourcePath", "").strip()
     folder_name = body.get("folderName", "").strip()
     author = body.get("author", "").strip()
-    add_watermark = body.get("addWatermark", True)
+    add_watermark_photo = body.get("addWatermarkPhoto", True)
+    add_watermark_video = body.get("addWatermarkVideo", True)
     compress_photo = body.get("compressPhoto", True)
     compress_video = body.get("compressVideo", True)
+    date_range = body.get("dateRange", "all")
+    custom_date = body.get("customDate", "")
+    move_source = bool(body.get("moveSource", False))
 
     if not source_path or not os.path.isdir(source_path):
         return {"status": "error", "message": "源文件夹无效"}
@@ -566,8 +581,10 @@ async def api_collect_copy(request: Request, name: str):
         if existing["name"] == folder_name:
             if existing["author"] != author:
                 return {"status": "error", "message": f"文件夹「{folder_name}」已存在，作者必须与之前一致"}
-            if existing.get("addWatermark") != add_watermark:
-                return {"status": "error", "message": f"文件夹「{folder_name}」已存在，水印设置必须与之前一致"}
+            if existing.get("addWatermarkPhoto", True) != add_watermark_photo:
+                return {"status": "error", "message": f"文件夹「{folder_name}」已存在，照片水印设置必须与之前一致"}
+            if existing.get("addWatermarkVideo", True) != add_watermark_video:
+                return {"status": "error", "message": f"文件夹「{folder_name}」已存在，视频水印设置必须与之前一致"}
             if existing.get("compressPhoto") != compress_photo:
                 return {"status": "error", "message": f"文件夹「{folder_name}」已存在，压缩照片设置必须与之前一致"}
             if existing.get("compressVideo") != compress_video:
@@ -579,7 +596,8 @@ async def api_collect_copy(request: Request, name: str):
         return {"status": "error", "message": f"创建目标文件夹失败: {str(e)}"}
 
     start_copy(name, source_path, dest_path, folder_name, author,
-               add_watermark, compress_photo, compress_video)
+               add_watermark_photo, add_watermark_video, compress_photo, compress_video,
+               date_range=date_range, custom_date=custom_date, move_source=move_source)
     return {"status": "ok", "message": "拷贝任务已启动"}
 
 
@@ -590,7 +608,8 @@ async def api_folder_update(request: Request, name: str, folder_name: str):
     if not new_name:
         return {"status": "error", "message": "名称不能为空"}
     author = body.get("author", "").strip()
-    add_watermark = body.get("addWatermark", True)
+    add_watermark_photo = body.get("addWatermarkPhoto", True)
+    add_watermark_video = body.get("addWatermarkVideo", True)
     compress_photo = body.get("compressPhoto", True)
     compress_video = body.get("compressVideo", True)
 
@@ -613,7 +632,8 @@ async def api_folder_update(request: Request, name: str, folder_name: str):
         target["name"] = new_name
 
     target["author"] = author
-    target["addWatermark"] = add_watermark
+    target["addWatermarkPhoto"] = add_watermark_photo
+    target["addWatermarkVideo"] = add_watermark_video
     target["compressPhoto"] = compress_photo
     target["compressVideo"] = compress_video
     write_project_idjson(project_dir, id_data)
@@ -711,83 +731,181 @@ async def api_filter_progress(name: str):
     return data
 
 
-@app.get("/api/project/{name:path}/ai-filter-count")
-async def api_ai_filter_count(name: str):
+@app.post("/api/project/{name:path}/quality-filter-start")
+async def api_quality_filter_start(name: str):
+    """启动三级废片过滤（针对「图片素材」内照片，结果写入 筛选结果.json）。
+
+    与连拍快筛互斥：连拍检测进行中时拒绝启动，避免两者同时占用算力/相互干扰。
+    """
     project_dir, id_data = resolve_project(name)
-    total = ai_filter.count_ai_filterable_photos(project_dir)
-    return {"total": total}
+    if burst_service.is_running(name):
+        return {"status": "busy", "message": "连拍快筛正在进行，请等待其完成后再启动三级筛选"}
+    total = quality_filter.count_photos(project_dir)
+    started = quality_filter.start_quality_filter(project_dir, name)
+    if not started:
+        return {"status": "busy", "message": "三级筛选已在进行中", "total": total}
+    return {"status": "ok", "message": "废片检测已启动", "total": total}
 
 
-@app.post("/api/project/{name:path}/ai-filter-start")
-async def api_ai_filter_start(name: str):
+@app.get("/api/project/{name:path}/quality-filter-count")
+async def api_quality_filter_count(name: str):
     project_dir, id_data = resolve_project(name)
-    total = ai_filter.count_ai_filterable_photos(project_dir)
-    ai_filter.start_ai_filter(project_dir, name)
-    return {"status": "ok", "message": "AI 筛检已启动", "total": total}
+    return {"total": quality_filter.count_photos(project_dir)}
 
 
-@app.get("/api/project/{name:path}/ai-filter-progress")
-async def api_ai_filter_progress(name: str):
-    data = ai_filter.get_progress(name)
+@app.get("/api/project/{name:path}/quality-filter-progress")
+async def api_quality_filter_progress(name: str):
+    data = quality_filter.get_progress(name)
     if data is None:
         return {"status": "not_found"}
     return data
 
 
+@app.get("/api/project/{name:path}/quality-filter-summary")
+async def api_quality_filter_summary(name: str):
+    """读取 筛选结果.json，返回总数/放弃数/三类计数/废片率。"""
+    project_dir, id_data = resolve_project(name)
+    records = quality_filter.load_records(project_dir)
+    if records is None:
+        return {"exists": False, "total": 0, "waste": 0,
+                "counts": {"exposure": 0, "focus": 0, "face": 0}, "waste_rate": 0.0}
+    return {"exists": True, **quality_filter.summarize(records)}
+
+
+@app.get("/api/project/{name:path}/quality-filter-photos")
+async def api_quality_filter_photos(name: str, reason: str = Query(...)):
+    """返回某一问题类别（exposure/focus/face）的全部废片候选及其当前状态。"""
+    project_dir, id_data = resolve_project(name)
+    records = quality_filter.load_records(project_dir) or []
+    items = [
+        {"path": it.get("path", ""), "rescued": it.get("verdict") != "waste"}
+        for it in records
+        if it.get("reason") == reason and it.get("path")
+    ]
+    return {"reason": reason, "label": quality_filter.REASON_LABELS.get(reason, "废片"),
+            "items": items}
+
+
+@app.post("/api/project/{name:path}/quality-filter-set-status")
+async def api_quality_filter_set_status(name: str, request: Request):
+    """设置单张废片状态：rescued=true 拯救（保留），false 放弃（待移入废弃物）。"""
+    body = await request.json()
+    target_path = (body.get("path") or "").strip()
+    rescued = bool(body.get("rescued"))
+    project_dir, id_data = resolve_project(name)
+    records = quality_filter.load_records(project_dir)
+    if records is None:
+        return {"status": "error", "message": "筛选结果不存在"}
+    changed = False
+    for it in records:
+        if it.get("path") == target_path and it.get("reason"):
+            it["verdict"] = "pass" if rescued else "waste"
+            it["user_set"] = True   # 用户显式选择，检测运行写盘时不得覆盖
+            changed = True
+            break
+    if not changed:
+        return {"status": "error", "message": "未找到匹配的废片"}
+    if not quality_filter.save_records(project_dir, records):
+        return {"status": "error", "message": "写入筛选结果失败"}
+    return {"status": "ok", **quality_filter.summarize(records)}
+
+
 # ===========================================================================
-# AI 筛检 — 分类结果.json 读写公共助手
+# Step2 — 视频照片分流 + 连拍组检测选留
 # ===========================================================================
 
-CLASSIFY_RESULT_FILE = "分类结果.json"
-
-
-def _load_classify_result(project_dir: str) -> list | None:
-    """读取 分类结果.json，返回列表；文件缺失/损坏/格式错误返回 None。"""
-    results_path = os.path.join(project_dir, CLASSIFY_RESULT_FILE)
-    if not os.path.isfile(results_path):
-        return None
+@app.post("/api/project/{name:path}/material-split")
+async def api_material_split(name: str):
+    """分流：把视频移到「视频素材」、照片平铺到「图片素材」（幂等）。"""
+    project_dir, id_data = resolve_project(name)
     try:
-        with open(results_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except (json.JSONDecodeError, Exception):
-        return None
-    if not isinstance(data, list):
-        return None
+        result = photo_index.extract_to_material_dirs(project_dir, id_data)
+    except Exception as e:
+        logger.exception("素材分流失败")
+        return {"status": "error", "message": f"分流失败: {e}"}
+    return {"status": "ok", **result}
+
+
+@app.post("/api/project/{name:path}/burst-start")
+async def api_burst_start(name: str):
+    """启动连拍检测。
+
+    与三级筛选互斥：三级过滤进行中时拒绝启动，两者不得同时跑。
+    连拍依赖照片索引与「图片素材」平铺（正常由长按「开始」的分流步骤建立）；
+    这里先补跑一次幂等的前置提取，保证「先点连拍」也能拿到索引。
+    """
+    project_dir, id_data = resolve_project(name)
+    if quality_filter.is_running(name):
+        return {"status": "busy", "started": False,
+                "message": "三级筛选正在进行，请等待其完成后再启动连拍快筛"}
+    try:
+        photo_index.extract_to_material_dirs(project_dir, id_data)
+    except Exception as e:
+        logger.exception("连拍前置素材提取失败")
+        return {"status": "error", "started": False, "message": f"建立照片索引失败: {e}"}
+    started = burst_service.start_burst_detection(project_dir, name)
+    return {"status": "ok", "started": started,
+            "message": "连拍检测已启动" if started else "已有检测在进行中"}
+
+
+@app.get("/api/project/{name:path}/burst-progress")
+async def api_burst_progress(name: str):
+    data = burst_service.get_progress(name)
+    if data is None:
+        return {"status": "not_found"}
     return data
 
 
-def _save_classify_result(project_dir: str, data: list) -> bool:
-    """写回 分类结果.json，成功返回 True。"""
-    try:
-        with open(os.path.join(project_dir, CLASSIFY_RESULT_FILE), "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        return True
-    except Exception:
-        return False
+@app.get("/api/project/{name:path}/burst-groups")
+async def api_burst_groups(name: str):
+    """返回 连拍组.json 的分组及每张的保留状态（供连拍组筛选模式渲染）。
 
-
-def _classify_summary(data: list) -> dict:
-    """统计各类废片数量 (type 2 过曝欠曝 / type 3 内容无物 / type 4 文件损坏)。"""
-    summary = {"type2": 0, "type3": 0, "type4": 0}
-    for item in data:
-        t = item.get("type")
-        if t == 2:
-            summary["type2"] += 1
-        elif t == 3:
-            summary["type3"] += 1
-        elif t == 4:
-            summary["type4"] += 1
-    return summary
-
-
-@app.get("/api/project/{name:path}/ai-filter-summary")
-async def api_ai_filter_summary(name: str):
-    """读取 分类结果.json，汇总各类废片数量。"""
-    project_dir, id_data = resolve_project(name)
-    data = _load_classify_result(project_dir)
+    stale=true 表示快照与最新 筛选结果.json 不一致（含照片判废/被拯救），
+    前端应重新触发检测，保证「每次打开都按最新三级结果刷新」。
+    """
+    project_dir, _ = resolve_project(name)
+    data = burst_service.load_groups(project_dir)
     if data is None:
-        return {"exists": False, "type2": 0, "type3": 0, "type4": 0}
-    return {"exists": True, **_classify_summary(data)}
+        return {"exists": False, "groups": [], "group_count": 0,
+                "discarded": 0, "total_photos": 0, "stale": True}
+    groups = data["groups"]
+    total_photos = sum(len(g.get("photos", [])) for g in groups)
+    discarded = sum(1 for g in groups for ph in g.get("photos", []) if not ph.get("keep"))
+    return {"exists": True, "groups": groups, "group_count": len(groups),
+            "total_photos": total_photos, "discarded": discarded,
+            "stale": burst_service.is_stale(project_dir)}
+
+
+@app.post("/api/project/{name:path}/burst-set-photo")
+async def api_burst_set_photo(request: Request, name: str):
+    """设置组内单张照片的保留状态（只改状态，不动文件）。"""
+    body = await request.json()
+    try:
+        group_id = int(body.get("group_id", -1))
+    except (ValueError, TypeError):
+        return {"status": "error", "message": "组号无效"}
+    path = (body.get("path") or "").strip()
+    keep = bool(body.get("keep"))
+    project_dir, _ = resolve_project(name)
+    return burst_service.set_photo_keep(project_dir, group_id, path, keep)
+
+
+@app.post("/api/project/{name:path}/burst-set-group")
+async def api_burst_set_group(request: Request, name: str):
+    """组级：全部保留 / 全部舍弃（只改状态，不动文件）。"""
+    body = await request.json()
+    try:
+        group_id = int(body.get("group_id", -1))
+    except (ValueError, TypeError):
+        return {"status": "error", "message": "组号无效"}
+    keep = bool(body.get("keep"))
+    project_dir, _ = resolve_project(name)
+    return burst_service.set_group_keep(project_dir, group_id, keep)
+
+
+# ===========================================================================
+# Step3 — 视频标签提取 / 照片分类
+# ===========================================================================
 
 
 @app.post("/api/project/{name:path}/video-tagger/start")
@@ -837,21 +955,6 @@ async def api_list_videos(name: str):
     return {"videos": videos}
 
 
-@app.get("/api/project/{name:path}/ai-filter-photos")
-async def api_ai_filter_photos(name: str, type: int = Query(...)):
-    """读取 分类结果.json，返回指定类型的照片相对路径列表。"""
-    project_dir, id_data = resolve_project(name)
-    data = _load_classify_result(project_dir)
-    if data is None:
-        return {"paths": []}
-    paths = [
-        item["path"]
-        for item in data
-        if item.get("type") == type
-    ]
-    return {"paths": paths}
-
-
 @app.get("/api/project/{name:path}/photo-file/{path:path}")
 async def api_photo_file(name: str, path: str):
     """按项目相对路径返回图片文件。做路径安全检查。"""
@@ -872,60 +975,55 @@ async def api_photo_file(name: str, path: str):
     return FileResponse(abs_path, media_type=mime)
 
 
-@app.post("/api/project/{name:path}/ai-filter-rescue")
-async def api_ai_filter_rescue(name: str, request: Request):
-    """将某张废片标记为通过（type 2/3/4 → 1）。"""
-    body = await request.json()
-    target_path = body.get("path", "").strip()
-    project_dir, id_data = resolve_project(name)
-    data = _load_classify_result(project_dir)
-    if data is None:
-        return {"status": "error", "message": "分类结果不存在或格式错误"}
-    changed = False
-    for item in data:
-        if item.get("path") == target_path and item.get("type") in (2, 3, 4):
-            item["type"] = 1
-            changed = True
-            break
-    if not changed:
-        return {"status": "error", "message": "未找到匹配项或已是通过"}
-    if not _save_classify_result(project_dir, data):
-        return {"status": "error", "message": "写入分类结果失败"}
-    return {"status": "ok", "summary": _classify_summary(data)}
-
-
 @app.post("/api/project/{name:path}/ai-filter-confirm")
 async def api_ai_filter_confirm(name: str):
-    """确认废片结果：将 type 2/3/4 的文件移入废弃物，锁定 step2，前进到 step3。"""
+    """确认进入下一步（长按 3s）：把「放弃」状态的废片移入废弃物，锁定 step2，前进到 step3。
+
+    废片来源两路：
+      1. 筛选结果.json —— 三级过滤（曝光/对焦/人脸）判定为 waste 且未被拯救的照片；
+      2. 连拍组.json —— 连拍组中未保留（keep!=true）的相似图。
+    两文件都不存在时直接前进 step3。
+    """
     project_dir, id_data = resolve_project(name)
-    data = _load_classify_result(project_dir)
-    if data is None:
-        return {"status": "error", "message": "分类结果不存在或格式错误"}
     waste_dir = os.path.join(project_dir, "废弃物")
     os.makedirs(waste_dir, exist_ok=True)
     moved = 0
-    for item in data:
-        t = item.get("type")
-        if t not in (2, 3, 4):
-            continue
-        rel_path = item.get("path", "")
+
+    def _move_to_waste(rel_path: str) -> bool:
+        nonlocal moved
         if not rel_path:
-            continue
+            return False
         src = os.path.normpath(os.path.join(project_dir, rel_path))
         if not src.startswith(os.path.normpath(project_dir) + os.sep):
-            continue
-        if os.path.isfile(src):
-            try:
-                base = os.path.basename(rel_path)
-                dst = os.path.join(waste_dir, base)
-                # 避免重名
-                if os.path.exists(dst):
-                    name_only, ext = os.path.splitext(base)
-                    dst = os.path.join(waste_dir, f"{name_only}_{moved}{ext}")
-                shutil.move(src, dst)
-                moved += 1
-            except Exception as e:
-                logger.warning("移动失败: %s → %s (%s)", src, dst, e)
+            return False
+        if not os.path.isfile(src):
+            return False
+        try:
+            base = os.path.basename(rel_path)
+            dst = os.path.join(waste_dir, base)
+            if os.path.exists(dst):
+                name_only, ext = os.path.splitext(base)
+                counter = 1
+                while os.path.exists(dst):
+                    dst = os.path.join(waste_dir, f"{name_only}_{counter}{ext}")
+                    counter += 1
+            shutil.move(src, dst)
+            moved += 1
+            return True
+        except Exception as e:
+            logger.warning("移动失败: %s → %s (%s)", src, dst, e)
+            return False
+
+    # 1) 新流程：三级过滤结果中仍为「放弃」的废片
+    quality_records = quality_filter.load_records(project_dir) or []
+    for item in quality_records:
+        if item.get("verdict") == "waste":
+            _move_to_waste(item.get("path", ""))
+
+    # 2) 连拍组：未保留（keep!=true）的相似图 —— 与三级过滤统一收口移动
+    for rel in burst_service.collect_discard_paths(project_dir):
+        _move_to_waste(rel)
+
     id_data["step"] = 3
     id_data["step2_locked"] = True
     write_project_idjson(project_dir, id_data)
@@ -954,7 +1052,7 @@ async def api_ai_filter_confirm(name: str):
 
 @app.post("/api/project/{name:path}/ai-filter-skip")
 async def api_ai_filter_skip(name: str):
-    """跳过 AI 废片筛检：不产出 分类结果.json，直接把废片处理略过并进入 step3。
+    """跳过废片筛检：不移动任何废片，直接进入 step3。
 
     适用：用户确认这批素材无需废片筛检（如全部为有效照片），直接从 step2 进入 step3。
     动作：设 step=3、锁 step2、执行照片/视频素材提取（与 ai-filter-confirm 一致），
@@ -1048,7 +1146,7 @@ async def api_photo_folder_tree(name: str):
 
 @app.post("/api/project/{name:path}/photo-classify/plan")
 async def api_photo_classify_plan(request: Request, name: str):
-    """照片分类计划拆解 — 调用快速模型。
+    """照片分类计划拆解 — 调用推理模型。
 
     请求体:
       {
@@ -1163,9 +1261,9 @@ async def api_sse_events(name: str):
         filter_data = filter_service.get_progress(name)
         if filter_data:
             yield f"event: filter\ndata: {json.dumps(filter_data, ensure_ascii=False)}\n\n"
-        ai_filter_data = ai_filter.get_progress(name)
-        if ai_filter_data:
-            yield f"event: ai_filter\ndata: {json.dumps(ai_filter_data, ensure_ascii=False)}\n\n"
+        quality_data = quality_filter.get_progress(name)
+        if quality_data:
+            yield f"event: quality_filter\ndata: {json.dumps(quality_data, ensure_ascii=False)}\n\n"
         copy_data = get_copy_progress(name)
         if copy_data:
             yield f"event: copy\ndata: {json.dumps(copy_data, ensure_ascii=False)}\n\n"

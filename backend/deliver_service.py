@@ -76,7 +76,7 @@ def _collect_source_files(project_dir: str) -> list[tuple[str, str]]:
         # 跳过隐藏目录
         dirnames[:] = [d for d in dirnames if not d.startswith(".")]
         for fn in sorted(filenames):
-            # 交付不要 JSON（id.json / 分类结果.json / 分类方案.json 等）
+            # 交付不要 JSON（id.json / 分类方案.json 等）
             if fn.lower().endswith(".json"):
                 continue
             abs_src = os.path.join(dirpath, fn)

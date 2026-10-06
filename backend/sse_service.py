@@ -12,7 +12,7 @@
       return _progress.get(project_key)
 
 语义说明:
-  - push():      整体覆盖该项目的进度快照并推送（filter / ai_filter / video_tagger）
+  - push():      整体覆盖该项目的进度快照并推送（filter / quality_filter / video_tagger）
   - update():    在原快照上增量更新并推送（batch 语义）
   - broadcast(): 仅推送事件，不缓存（video_tagger 逐视频事件语义）
   - reset():     整体覆盖快照，不推送（batch 启动初始化）

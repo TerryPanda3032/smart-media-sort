@@ -30,11 +30,16 @@
     var copyModal = document.getElementById("copyModal");
     var copyFolderName = document.getElementById("copyFolderName");
     var copyAuthor = document.getElementById("copyAuthor");
-    var copyAddWatermark = document.getElementById("copyAddWatermark");
+    var copyImportOptions = document.getElementById("copyImportOptions");
+    var copyMoveSource = document.getElementById("copyMoveSource");
+    var copyAddWatermarkPhoto = document.getElementById("copyAddWatermarkPhoto");
+    var copyAddWatermarkVideo = document.getElementById("copyAddWatermarkVideo");
     var copyCompressPhoto = document.getElementById("copyCompressPhoto");
     var copyCompressVideo = document.getElementById("copyCompressVideo");
     var copyCancelBtn = document.getElementById("copyCancelBtn");
     var copyConfirmBtn = document.getElementById("copyConfirmBtn");
+
+    var copyDateRadios = document.querySelectorAll('input[name="copyDateRange"]');
  
     function resetSelection() {
       selectedPath = "";
@@ -51,7 +56,10 @@
         _editFolderName = folderData.name;
         copyFolderName.value = folderData.name;
         copyAuthor.value = folderData.author || "";
-        copyAddWatermark.checked = folderData.addwatermark !== "false";
+        // 编辑模式：只改元数据，不重新复制，隐藏导入选项
+        if (copyImportOptions) copyImportOptions.style.display = "none";
+        copyAddWatermarkPhoto.checked = folderData.addwatermarkphoto !== "false";
+        copyAddWatermarkVideo.checked = folderData.addwatermarkvideo !== "false";
         copyCompressPhoto.checked = folderData.compressphoto !== "false";
         copyCompressVideo.checked = folderData.compressvideo !== "false";
         copyConfirmBtn.textContent = "保存修改";
@@ -60,7 +68,12 @@
         _editFolderName = null;
         copyFolderName.value = "";
         copyAuthor.value = "";
-        copyAddWatermark.checked = true;
+        // 新建模式：显示导入选项（时间范围 + 转移源文件），重置默认值
+        if (copyImportOptions) copyImportOptions.style.display = "";
+        if (copyDateRadios.length) copyDateRadios[0].checked = true;
+        if (copyMoveSource) copyMoveSource.checked = false;
+        copyAddWatermarkPhoto.checked = true;
+        copyAddWatermarkVideo.checked = true;
         copyCompressPhoto.checked = true;
         copyCompressVideo.checked = true;
         copyConfirmBtn.textContent = "确认复制";
@@ -147,7 +160,8 @@
       copyConfirmBtn.addEventListener("click", function () {
         var folderName = copyFolderName.value.trim();
         var author = copyAuthor.value.trim();
-        var addWatermark = copyAddWatermark.checked;
+        var addWatermarkPhoto = copyAddWatermarkPhoto.checked;
+        var addWatermarkVideo = copyAddWatermarkVideo.checked;
         var compressPhoto = copyCompressPhoto.checked;
         var compressVideo = copyCompressVideo.checked;
         if (!folderName) { PC.showNotice("error", "请输入文件夹名称"); return; }
@@ -160,7 +174,8 @@
             body: JSON.stringify({
               name: folderName,
               author: author,
-              addWatermark: addWatermark,
+              addWatermarkPhoto: addWatermarkPhoto,
+              addWatermarkVideo: addWatermarkVideo,
               compressPhoto: compressPhoto,
               compressVideo: compressVideo,
             }),
@@ -182,6 +197,10 @@
         }
  
         // 新建模式：拷贝文件
+        var dateRange = "all";
+        for (var dr2 = 0; dr2 < copyDateRadios.length; dr2++) {
+          if (copyDateRadios[dr2].checked) { dateRange = copyDateRadios[dr2].value; break; }
+        }
         fetch("/api/project/" + proj.nameEncoded + "/collect-copy", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -189,9 +208,12 @@
             sourcePath: selectedPath,
             folderName: folderName,
             author: author,
-            addWatermark: addWatermark,
+            addWatermarkPhoto: addWatermarkPhoto,
+            addWatermarkVideo: addWatermarkVideo,
             compressPhoto: compressPhoto,
             compressVideo: compressVideo,
+            dateRange: dateRange,
+            moveSource: !!(copyMoveSource && copyMoveSource.checked),
           }),
         })
         .then(function (r) { return r.json(); })

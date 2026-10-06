@@ -6,6 +6,7 @@ requests
 numpy
 opencv-python-headless>=4.10,<5
 onnxruntime
-# 注意：三级过滤的人脸检测依赖 backend/models/face_detection_yunet_2023mar.onnx（约 228KB，随仓库分发）
-# 人脸质量评估依赖 backend/models/ediffiqa_tiny_jun2024.onnx（约 7MB，随仓库分发）
-# 相似图/连拍检测依赖 backend/models/sscd_disc_mixup.onnx（约 94MB，随仓库分发）
+# Local ONNX models are bundled in backend/models/ (no extra download needed):
+#   face_detection_yunet_2023mar.onnx  - face detection (~228KB)
+#   ediffiqa_tiny_jun2024.onnx         - face quality score (~7MB)
+#   sscd_disc_mixup.onnx               - similar-image / burst embedding (~94MB)

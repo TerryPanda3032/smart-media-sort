@@ -50,9 +50,9 @@ from photo_classify import _extract_json
 
 logger = logging.getLogger(__name__)
 
-BATCH_LIMIT = 100          # 每批照片数
+BATCH_LIMIT = 60        # 每批照片数
 SAMPLE_PER_CAT = 2        # 每个类别取样张数
-MAX_IMAGES_PER_BATCH = 120 # 单批图片总数上限（样张 + 本批照片），样张多时须缩小本批
+MAX_IMAGES_PER_BATCH = 80 # 单批图片总数上限（样张 + 本批照片），样张多时须缩小本批
 MAX_PARSE_RETRY = 3       # 单批解析失败/遗漏重试次数
 MAX_BATCHES = 2000        # 批次安全上限
 MAX_ROUNDS = 200          # AI 调度循环安全上限（防止死循环）
@@ -370,6 +370,48 @@ def execute_assignments(project_dir: str, assignments: list) -> dict:
 
 
 # ===========================================================================
+# 废片移除 — 压缩失败的照片移入废弃物并从 index 删除，保证不再参与分类
+# ===========================================================================
+
+WASTE_DIR = "废弃物"
+
+
+def _remove_from_index(project_dir: str, rel_paths: list[str]) -> int:
+    """把指定路径的记录从 index 中删除（文件已移出图片素材时调用）。
+
+    不能用 sync_index_from_operations 指向 ../废弃物：索引路径以 图片素材/
+    为基准，../ 前缀会被根目录列举当成零散照片重新捞回来。
+    """
+    entries = photo_index.read_index(project_dir)
+    if not entries:
+        return 0
+    drop = {p.replace("\\", "/") for p in rel_paths}
+    kept = [e for e in entries if e.get("path") not in drop]
+    if len(kept) == len(entries):
+        return 0
+    photo_index.write_index(project_dir, kept)
+    return len(entries) - len(kept)
+
+
+def _move_to_waste(project_dir: str, rel_path: str) -> bool:
+    """把照片移入项目根「废弃物」并同步删除 index 记录。成功返回 True。"""
+    src_abs = photo_index._path_abs(project_dir, rel_path)
+    if not src_abs or not os.path.isfile(src_abs):
+        return False
+    try:
+        waste_dir = os.path.join(project_dir, WASTE_DIR)
+        os.makedirs(waste_dir, exist_ok=True)
+        dst_abs = photo_index._unique_path(
+            os.path.join(waste_dir, os.path.basename(src_abs)))
+        shutil.move(src_abs, dst_abs)
+    except Exception as e:
+        logger.warning("移入废弃物失败 %s: %s", rel_path, e)
+        return False
+    _remove_from_index(project_dir, [rel_path])
+    return True
+
+
+# ===========================================================================
 # 图片压缩临时层 — 单档压缩（~10KB、<1000px），落到临时目录
 # ===========================================================================
 
@@ -379,6 +421,19 @@ TMP_DIR_NAME = ".photo_classify_tmp"   # 项目根下隐藏临时目录（index 
 # 实测样本均值 ~13.6KB，即 10KB 量级
 COMPRESS_MAX_PX = 960
 COMPRESS_QUALITY = 20
+
+# 压缩失败重试次数（首次 + 重试 2 次，共 3 次尝试）
+COMPRESS_RETRIES = 2
+
+
+def _compress_with_retry(src_abs: str, tmp_dir: str,
+                         retries: int = COMPRESS_RETRIES) -> str | None:
+    """压缩单张照片，失败重试；全部失败返回 None。"""
+    for _attempt in range(retries + 1):
+        comp = _compress_to_tmp(src_abs, tmp_dir)
+        if comp:
+            return comp
+    return None
 
 
 def _tmp_root(project_dir: str) -> str:
@@ -423,16 +478,23 @@ def _compress_to_tmp(src_abs: str, tmp_dir: str) -> str | None:
 
 
 def _append_images(project_dir: str, messages: list, rel_paths: list[str],
-                   caption: str, tmp_dir: str) -> int:
-    """把若干照片压缩后以 image 部件附到 messages 末尾；返回实际附图数量。"""
+                   caption: str, tmp_dir: str,
+                   cache: dict[str, str] | None = None) -> int:
+    """把若干照片压缩后以 image 部件附到 messages 末尾；返回实际附图数量。
+
+    cache: 相对路径 → 已压缩临时文件路径。命中时直接复用，确保与文字
+    编号清单严格对齐（预压缩阶段确认可压的图，这里绝不允许再失败丢失）。
+    """
     parts = []
     for rel in rel_paths:
-        src_abs = photo_index._path_abs(project_dir, rel)
-        if not src_abs or not os.path.isfile(src_abs):
-            continue
-        comp = _compress_to_tmp(src_abs, tmp_dir)
+        comp = (cache or {}).get(rel)
         if not comp:
-            continue
+            src_abs = photo_index._path_abs(project_dir, rel)
+            if not src_abs or not os.path.isfile(src_abs):
+                continue
+            comp = _compress_to_tmp(src_abs, tmp_dir)
+            if not comp:
+                continue
         with open(comp, "rb") as f:
             data = f.read()
         b64 = base64.b64encode(data).decode("utf-8")
@@ -576,10 +638,12 @@ def _fmt_photo_line(idx: int, p: dict) -> str:
 def build_batch_messages(project_dir: str, plan: dict,
                          photos: list[dict], categories: list[dict],
                          tmp_dir: str, folder_rel: str = "",
-                         active_step: dict | None = None) -> list:
+                         active_step: dict | None = None,
+                         cache: dict[str, str] | None = None) -> list:
     """组装一批的完整消息: system + 文字信息 + 样片图 + 本批图（每批全新）。
 
     active_step: 验收 AI 指定的当前步骤，透传进 system 提示，只注入该步骤。
+    cache: 本批预压缩缓存（相对路径 → 压缩临时文件），透传给 _append_images。
     """
     lines = ["【本批待分类照片】编号 | 作者 | 拍摄时间（图片随后附上，按编号顺序对应）"]
     for i, p in enumerate(photos, 1):
@@ -605,10 +669,10 @@ def build_batch_messages(project_dir: str, plan: dict,
         if samples:
             _append_images(project_dir, messages, samples,
                            f"类别「{c['name']}」的 {len(samples)} 张样片：", tmp_dir)
-    # 本批图
+    # 本批图（全部来自预压缩缓存，保证编号 ↔ 附图一一对应）
     _append_images(project_dir, messages, [p["path"] for p in photos],
                    f"以下是本批 {len(photos)} 张待分类照片，按编号 1~{len(photos)} 顺序对应：",
-                   tmp_dir)
+                   tmp_dir, cache=cache)
     return messages
 
 
@@ -1063,11 +1127,36 @@ def _process_batch_loop(project_dir: str, project_key: str, plan: dict,
         tmp_dir = os.path.join(_tmp_root(project_dir), f"batch_{batch_no:04d}")
         os.makedirs(tmp_dir, exist_ok=True)
 
+        # 预压缩校验：压缩失败先重试 2 次，仍失败 → 移为废片并从本批剔除。
+        # 必须在编号清单生成前完成，保证「编号 ↔ 附图」严格一一对应（防图文错位）。
+        comp_cache: dict[str, str] = {}
+        valid_photos: list[dict] = []
+        for p in photos:
+            src_abs = photo_index._path_abs(project_dir, p["path"])
+            comp = (_compress_with_retry(src_abs, tmp_dir)
+                    if src_abs and os.path.isfile(src_abs) else None)
+            if comp:
+                comp_cache[p["path"]] = comp
+                valid_photos.append(p)
+            else:
+                _log(project_key, batch_no, "warning",
+                     f"照片压缩失败（已重试 {COMPRESS_RETRIES} 次），移为废片: {p['path']}")
+                if not _move_to_waste(project_dir, p["path"]):
+                    _log(project_key, batch_no, "error",
+                         f"移入废弃物失败，该照片将不参与本批分类: {p['path']}")
+        photos = valid_photos
+        if not photos:
+            _log(project_key, batch_no, "info",
+                 "本批照片全部压缩失败，已全部移为废片，跳过本批")
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            continue
+
         try:
             _log(project_key, batch_no, "info",
                  f"════ 第 {batch_no} 批｜{folder_rel or '根目录'}｜本批 {len(photos)} 张（样张 {sample_total}），剩余 {len(pool)} 张 ════")
             messages = build_batch_messages(
-                project_dir, plan, photos, categories, tmp_dir, folder_rel, active_step)
+                project_dir, plan, photos, categories, tmp_dir, folder_rel,
+                active_step, cache=comp_cache)
             _log(project_key, batch_no, "system", messages[0]["content"])
             _log(project_key, batch_no, "user", messages[1]["content"][0]["text"])
             for extra in messages[2:]:
@@ -1126,7 +1215,7 @@ def _process_batch_loop(project_dir: str, project_key: str, plan: dict,
                                [photos[i - 1]["path"] for i in miss],
                                f"以下是缺失编号的照片，按编号 "
                                f"{'、'.join(str(i) for i in miss)} 顺序对应：",
-                               tmp_dir)
+                               tmp_dir, cache=comp_cache)
                 _log(project_key, batch_no, "info",
                      f"重试重发：仅 {len(miss)} 张缺失照片图 + 编号清单，未整批重传")
             if parsed is None:

@@ -20,6 +20,7 @@
 
 import logging
 import os
+import struct
 import subprocess
 import tempfile
 import time
@@ -86,6 +87,61 @@ def _watermark_text(author):
     if not name:
         return ""
     return name if name.startswith("©") else "©" + name
+
+
+def _collect_exif(img) -> bytes | None:
+    """抓取图片的完整 EXIF 载荷（保存时回写，避免压缩/水印重编码丢失）。
+
+    优先取 info 里的原始 APP1 载荷（JPEG，逐字节保真）；
+    TIFF 系（DNG 等）没有该载荷，退回 getexif 序列化（尽力而为）。
+    """
+    try:
+        raw = img.info.get("exif")
+        if raw:
+            return raw
+    except Exception:
+        pass
+    try:
+        exif_obj = img.getexif()
+        if exif_obj and len(exif_obj):
+            # 子 IFD 指针无法可靠重序列化，删掉指针避免写入悬空偏移
+            for ptr in (0x8769, 0x8825, 0xA005):
+                if ptr in exif_obj:
+                    del exif_obj[ptr]
+            return exif_obj.tobytes()
+    except Exception:
+        pass
+    return None
+
+
+def _strip_exif_orientation(exif: bytes | None) -> bytes | None:
+    """把 EXIF 载荷中 IFD0 的 Orientation(0x0112) 原位改写为 1。
+
+    像素已被 exif_transpose 物理转正，Orientation 若保留原值，查看器会再转
+    一次。直接在原始字节上改值（不重新序列化），其余标签逐字节保留。
+    """
+    if not exif:
+        return exif
+    try:
+        prefix, body = b"", exif
+        if body[:6] == b"Exif\x00\x00":
+            prefix, body = body[:6], body[6:]
+        if body[:2] not in (b"II", b"MM"):
+            return exif
+        bo = "<" if body[:2] == b"II" else ">"
+        (ifd0,) = struct.unpack(bo + "I", body[4:8])
+        (n,) = struct.unpack(bo + "H", body[ifd0:ifd0 + 2])
+        for i in range(n):
+            off = ifd0 + 2 + i * 12
+            (tag,) = struct.unpack(bo + "H", body[off:off + 2])
+            if tag == 0x0112:
+                val = off + 8
+                fixed = b"\x01\x00" if bo == "<" else b"\x00\x01"
+                body = body[:val] + fixed + body[val + 2:]
+                break
+        return prefix + body
+    except Exception:
+        return exif
 
 
 def _add_watermark_photo(img, author, wm_size=24, wm_opacity=80):
@@ -214,6 +270,9 @@ def process_photo(filepath, folder_dir, config, seq_num, wm_size=24, wm_opacity=
         except Exception:
             pass
 
+        # 抓完整原始 EXIF（压缩/加水印重编码会丢，保存时回写补回）
+        exif_bytes = _collect_exif(img)
+
         # 归一化 EXIF 朝向：把像素物理旋转到正向后再重编码。
         # 手机竖拍照片的像素是横着存的、靠 EXIF Orientation 标记显示为竖向；
         # PIL 的 save() 默认不写回 EXIF，标记一丢就永久变成横图（前端无法纠正）。
@@ -221,6 +280,8 @@ def process_photo(filepath, folder_dir, config, seq_num, wm_size=24, wm_opacity=
         img = ImageOps.exif_transpose(_src)
         if img is not _src:
             _src.close()
+            # 像素已转正，Orientation 必须改写为 1，否则查看器会再转一次
+            exif_bytes = _strip_exif_orientation(exif_bytes)
 
         if ts:
             out_name = f"{ts}_{seq_num:04d}{ext}"
@@ -245,6 +306,9 @@ def process_photo(filepath, folder_dir, config, seq_num, wm_size=24, wm_opacity=
 
         if watermark and author:
             img = _add_watermark_photo(img, author, wm_size, wm_opacity)
+
+        if exif_bytes:
+            save_kwargs["exif"] = exif_bytes
 
         img.save(out_path, **save_kwargs)
         img.close()

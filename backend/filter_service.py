@@ -20,9 +20,11 @@ from media import count_project_files
 
 logger = logging.getLogger(__name__)
 
-KEEP_EXTS = {".png", ".dng", ".jpg", ".jpeg", ".mp4", ".mov", ".avi"}
+# dng(RAW) 明确不支持：保留到 step3 会因压缩失败引发图文错位，
+# 在筛检阶段直接按「格式不符」提前移入废弃物。
+KEEP_EXTS = {".png", ".jpg", ".jpeg", ".mp4", ".mov", ".avi"}
 
-# 需要 PIL 验证完整性的照片格式（dng 等 RAW 不做验证，避免误删正常文件）
+# 需要 PIL 验证完整性的照片格式
 VERIFY_EXTS = {".png", ".jpg", ".jpeg"}
 
 _filter_progress = ProgressState()
